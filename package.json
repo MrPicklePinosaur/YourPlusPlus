@@ -1,0 +1,22 @@
+{
+  "name": "yourplusplus",
+  "version": "1.0.0",
+  "description": "A programming language that you can customize to your liking!",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrPicklePinosaur/YourPlusPlus.git"
+  },
+  "author": "Daniel Liu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MrPicklePinosaur/YourPlusPlus/issues"
+  },
+  "homepage": "https://github.com/MrPicklePinosaur/YourPlusPlus#readme",
+  "dependencies": {
+    "electron": "^8.2.0"
+  }
+}
