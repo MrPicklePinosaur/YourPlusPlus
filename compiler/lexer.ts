@@ -1,10 +1,4 @@
 class Lexer {
-    /*
-    static tokenize(script: string, tokenDelimiter: string, lineDelimiter: string): string[] {
-        var split = script.split(new RegExp(`[${tokenDelimiter}(${lineDelimiter})]`));
-        return split;
-    } 
-    */
 
     //tokenizer capture types (start_trigger: end_trigger)
     static capture = {
@@ -54,12 +48,5 @@ class Lexer {
         return tokened;
    }
    
-   /*
-    static test() {
-        var script = 'int a = 1\nint a = 2\nint c = a + b';
-        console.log(Lexer.tokenize(script,' ','\n'));
-        
-    }
-    */
 }
 
