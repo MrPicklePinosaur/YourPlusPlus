@@ -50,12 +50,18 @@ function createNewProjectWindow() {
 		slashes: true
 	}));
 	
-
 	//dispose
 	newProjectWindow.on('close',function(){
 		newProjectWindow = null;
 	})
+}
 
+function createLanguageOptionsWindow() {
+	languageOptionsWindow = new BrowserWindow({
+		webPreferences: {
+			nodeIntegration: true
+		},
+	});
 
 }
 
