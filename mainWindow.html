@@ -2,13 +2,20 @@
 <html>
 <head>
 	<title>Main Window</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 	<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 	<textarea id="editor" placeholder="print('hello world')"></textarea>
+
+	<button id="run-button" class="btn btn-primary">RUN!</button>
+
+	<p id="output"></p>
 </body>
 
 <script src="compiler/lexer.js"></script>
 <script src="compiler/sematics.json"></script>
+
+<script src="basics/Calculator.js"></script>
 </html>
