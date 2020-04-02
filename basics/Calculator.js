@@ -36,6 +36,7 @@ var CalcInterpreter = /** @class */ (function () {
     };
     CalcInterpreter.prototype.evaluate = function () {
         //var semantics = [TokenTypes.NUMBER,TokenTypes.ADDITION,TokenTypes.NUMBER];
+        //lexify
         this.nextChar();
         for (var i = 0; i < this.script.length; i++) {
             if ((/\d/).test(this.curChar)) { //if the current character is a number
@@ -55,7 +56,7 @@ var CalcInterpreter = /** @class */ (function () {
                 this.tokens.push({ type: TokenTypes.DIVISION, value: null });
             }
             else if (!this.curChar) { //if null, we have reached end of file
-                //tokens.push({type: TokenTypes.EOF, value: null});
+                this.tokens.push({ type: TokenTypes.EOF, value: null });
                 break;
             }
             this.nextChar();
@@ -76,40 +77,50 @@ var CalcInterpreter = /** @class */ (function () {
                 return null; //throw error thingy
             }
         }*/
-        //alternate implementation
-        var curToken;
-        var sum;
+        var sum = 0;
+        this.curToken = this.getFirstToken();
+        sum += this.eat(TokenTypes.NUMBER).value;
         try {
-            curToken = this.eat(TokenTypes.NUMBER);
-            sum += curToken.value;
-            while (this.tokens.length > 0 && (curToken.type == TokenTypes.POSITIVE || curToken.type == TokenTypes.NEGATIVE)) {
-                if (curToken.type == TokenTypes.POSITIVE) {
-                    curToken = this.eat(TokenTypes.POSITIVE);
-                    sum += curToken.value;
-                    curToken = this.eat(TokenTypes.NUMBER);
+            while (true) {
+                if (this.curToken.type == TokenTypes.POSITIVE) {
+                    this.eat(TokenTypes.POSITIVE);
+                    sum += this.eat(TokenTypes.NUMBER).value;
                 }
-                else if (curToken.type == TokenTypes.NEGATIVE) {
-                    curToken = this.eat(TokenTypes.NEGATIVE);
-                    sum -= curToken.value;
-                    curToken = this.eat(TokenTypes.NUMBER);
+                else if (this.curToken.type == TokenTypes.NEGATIVE) {
+                    this.eat(TokenTypes.NEGATIVE);
+                    sum -= this.eat(TokenTypes.NUMBER).value;
+                }
+                else { //if we reach a wrong expression
+                    throw SyntaxError("Invalid Syntax");
                 }
             }
         }
-        catch (error) {
-            return null;
+        catch (e) {
+            if (e instanceof RangeError) {
+                // do nothing
+            }
+            else if (e instanceof SyntaxError) {
+                return null;
+            }
         }
+        console.log(sum);
         return sum;
     };
     CalcInterpreter.prototype.eat = function (tokenType) {
-        var token = this.tokens.shift();
-        if (token.type != tokenType) {
-            throw SyntaxError("Syntax Error");
+        var oldToken = this.curToken;
+        if (oldToken.type != tokenType) {
+            throw SyntaxError("Invalid Syntax");
         }
-        var nextToken = this.tokens[0];
-        if (nextToken == null) {
-            throw RangeError("Reached end of file");
+        this.tokens.shift(); //pop first token
+        this.curToken = this.getFirstToken();
+        return oldToken;
+    };
+    CalcInterpreter.prototype.getFirstToken = function () {
+        var firstToken = this.tokens[0];
+        if (firstToken.type == TokenTypes.EOF) { //if null
+            throw RangeError("End of file reached");
         }
-        return nextToken;
+        return firstToken;
     };
     return CalcInterpreter;
 }());
