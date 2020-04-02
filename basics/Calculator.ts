@@ -17,7 +17,9 @@ class CalcInterpreter {
     script: string;
     ip: number = -1; //instruction pointer
     curChar: string;
+
     tokens: Token[] = [];
+    curToken: Token;
 
     constructor(script: string) {
         this.script = script;
@@ -92,19 +94,22 @@ class CalcInterpreter {
         var curToken;
         var sum;
         try {
-            curToken = this.eat(TokenTypes.NUMBER);
-            sum += curToken.value;
-            while (this.tokens.length > 0 && (curToken.type == TokenTypes.POSITIVE || curToken.type == TokenTypes.NEGATIVE)) {
-                
-                if (curToken.type == TokenTypes.POSITIVE) {
-                    curToken = this.eat(TokenTypes.POSITIVE);
-                    sum += curToken.value;
-                } else if (curToken.type == TokenTypes.NEGATIVE) {
-                    curToken = this.eat(TokenTypes.NEGATIVE);
-                    sum -= curToken.value;
+            this.nextToken();
+            this.eat(TokenTypes.NUMBER);
+            while (this.tokens.length > 0) {
+                this.nextToken();
+
+                if (this.curToken.type = TokenTypes.POSITIVE) {
+                    this.nextToken();
+                    this.eat(TokenTypes.NUMBER);
+                    sum += this.curToken.value;
+                } else if (this.curToken.type = TokenTypes.NEGATIVE) {
+                    this.nextToken();
+                    this.eat(TokenTypes.NUMBER);
+                    sum -= this.curToken.value;
                 }
-                curToken = this.eat(TokenTypes.NUMBER);
             }
+
         } catch (error) {
             return null;
         }
@@ -112,17 +117,19 @@ class CalcInterpreter {
         return sum;
     }
 
-    eat(tokenType: TokenTypes): Token { //checks tokens for correct syntax
-        var token = this.tokens.shift();
-        if (token.type != tokenType) {
+    eat(tokenType: TokenTypes) { //checks tokens for correct syntax
+        
+        if (this.curToken.type != tokenType) {
             throw SyntaxError("Syntax Error");
         }
-        var nextToken = this.tokens[0];
+    }
+
+    nextToken() {
+        var nextToken = this.tokens.shift();
         if (nextToken == null) {
             throw RangeError("Reached end of file");
         }
-        return nextToken;
-        
+        this.curToken = nextToken;
     }
 
 }
