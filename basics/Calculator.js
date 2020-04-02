@@ -12,6 +12,7 @@ var CalcInterpreter = /** @class */ (function () {
         this.ip = -1; //instruction pointer
         this.tokens = [];
         this.script = script;
+        this.nextChar();
     }
     CalcInterpreter.prototype.nextChar = function () {
         this.ip += 1;
@@ -35,26 +36,34 @@ var CalcInterpreter = /** @class */ (function () {
         return { type: TokenTypes.NUMBER, value: parseInt(soFar) };
     };
     CalcInterpreter.prototype.nextToken = function () {
-        this.nextChar();
-        if ((/\d/).test(this.curChar)) { //if the current character is a number
-            return this.handleInteger();
-        }
-        else if (this.curChar == '+') {
-            return { type: TokenTypes.POSITIVE, value: null };
-        }
-        else if (this.curChar == '-') {
-            return { type: TokenTypes.NEGATIVE, value: null };
-        }
-        else if ((/[\*x]/).test(this.curChar)) {
-            return { type: TokenTypes.MULTIPLICATION, value: null };
-        }
-        else if (this.curChar == '/') {
-            return { type: TokenTypes.DIVISION, value: null };
+        var token = null;
+        while (true) { //keep searching until a valid token is found
+            if ((/\d/).test(this.curChar)) { //if the current character is a number
+                return this.handleInteger();
+            }
+            else if (this.curChar == '+') {
+                token = { type: TokenTypes.POSITIVE, value: null };
+            }
+            else if (this.curChar == '-') {
+                token = { type: TokenTypes.NEGATIVE, value: null };
+            }
+            else if ((/[\*x]/).test(this.curChar)) {
+                token = { type: TokenTypes.MULTIPLICATION, value: null };
+            }
+            else if (this.curChar == '/') {
+                token = { type: TokenTypes.DIVISION, value: null };
+            }
+            else if (this.curChar == null) {
+                return { type: TokenTypes.EOF, value: null };
+            }
+            this.nextChar();
+            if (token != null) {
+                return token;
+            }
         }
         /*else if (!this.curChar) { //if null, we have reached end of file
             return {type: TokenTypes.EOF, value: null};
         } */
-        return null;
     };
     CalcInterpreter.prototype.expr = function () {
         //check to see if syntax is valid
@@ -75,6 +84,7 @@ var CalcInterpreter = /** @class */ (function () {
             }
             curToken = this.nextToken();
         }
+        console.log("sum " + sum);
         return sum;
     };
     return CalcInterpreter;
@@ -85,7 +95,7 @@ document.getElementById('run-button').addEventListener('click', function () {
     var interpreter = new CalcInterpreter(script);
     var buildOutput = interpreter.expr();
     var out = document.getElementById('output');
-    if (buildOutput) { //if the output was not null
+    if (buildOutput != null) { //if the output was not null
         out.textContent = buildOutput.toString();
     }
     else {
