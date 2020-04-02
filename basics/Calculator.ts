@@ -3,66 +3,64 @@ interface Token {
     value: any;
 }
 
+const TokenTypes = {
+    NUMBER: 'NUMBER',
+    ADDITION: 'ADDITION',
+    EOF: 'EOF'
+}
+
 class CalcInterpreter {
 
     script: string;
     ip: number = 0; //instruction pointer
-    curToken: Token;
+    curChar: string;
 
     constructor(script: string) {
         this.script = script;
     }
 
-    step(): Token {
-
-        if (this.ip > this.script.length-1) { //EOF if finished
-            return {type: 'EOF', value: null}
-        }
-
-        var cur = this.script.charAt(this.ip).toString();
+    nextChar(): void {
         this.ip += 1;
-        
-        if (/\d/.test(cur)) { //if current char is a number
-            return {type: 'NUMBER', value: parseInt(cur,10)}
-        }
-        if (/\+/.test(cur)) {
-            return {type: "ADDITION", value: null}
-        }
-        
-
-    }
-
-    eatToken(type: string): void {
-        if (this.curToken.type == type) {
-            this.curToken = this.step();
+        if (this.ip > this.script.length-1) {
+            this.curChar = null;
         } else {
-            throw Error("Error in parsing!");
+            this.curChar = this.script.charAt(this.ip).toString();
         }
     }
 
-    evaluate(): number {
-        this.curToken = this.step();
 
-        var semantic = ["NUMBER","ADDITION","NUMBER"];
-        var results = [];
+    handleInteger(): Token {
+        var soFar: string;
 
-        var i = 0
-        
         while (true) {
-            results.push(this.curToken.value);
-            //console.log(`${this.curToken.type}, ${this.curToken.value}`);
-            try {
-                this.eatToken(semantic[i])
-            } catch(err) {
-                console.log(`BREAK ${i}`);
+            //if reach end of file or hit a non number
+            if (this.curChar || !(/\d/).test(this.curChar)) { break; }
+            soFar += this.curChar;
+            this.nextChar();
+        }
+        return {type: TokenTypes.NUMBER, value: parseInt(soFar)}
+    }
+
+    evaluate() {
+
+        var semantics = [TokenTypes.NUMBER,TokenTypes.NUMBER,TokenTypes.NUMBER];
+        var tokens = [];
+        for (var i = 0; i < this.script.length; i++) {
+
+            if ((/\d/).test(this.curChar)) { //if the current character is a number
+                tokens.push(this.handleInteger());
+            } else if (this.curChar == '+') {
+                tokens.push({type: TokenTypes.ADDITION, value: null});
+            } else if (!this.curChar) { //if null, we have reached end of file
                 break;
             }
-            i+=1;
-        }
 
-        //console.log(`${results[0]}, ${results[2]}`);
-        return results[0]+results[2];
+            this.nextChar();
+        }
+        console.log(tokens);
+        
     }
+
 }
 
 document.getElementById('run-button').addEventListener('click',function() {
@@ -73,5 +71,5 @@ document.getElementById('run-button').addEventListener('click',function() {
     var buildOutput = interpreter.evaluate();
 
     var out = document.getElementById('output');
-    out.textContent = buildOutput.toString();
+    //out.textContent = buildOutput.toString();
 });
