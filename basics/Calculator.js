@@ -1,48 +1,59 @@
+var TokenTypes;
+(function (TokenTypes) {
+    TokenTypes[TokenTypes["NUMBER"] = 0] = "NUMBER";
+    TokenTypes[TokenTypes["ADDITION"] = 1] = "ADDITION";
+    TokenTypes[TokenTypes["EOF"] = 2] = "EOF";
+})(TokenTypes || (TokenTypes = {}));
 var CalcInterpreter = /** @class */ (function () {
     function CalcInterpreter(script) {
-        this.ip = 0; //instruction pointer
+        this.ip = -1; //instruction pointer
         this.script = script;
     }
-    CalcInterpreter.prototype.step = function () {
-        if (this.ip > this.script.length - 1) { //EOF if finished
-            return { type: 'EOF', value: null };
-        }
-        var cur = this.script.charAt(this.ip).toString();
+    CalcInterpreter.prototype.nextChar = function () {
         this.ip += 1;
-        if (/\d/.test(cur)) { //if current char is a number
-            return { type: 'NUMBER', value: parseInt(cur, 10) };
-        }
-        if (/\+/.test(cur)) {
-            return { type: "ADDITION", value: null };
-        }
-    };
-    CalcInterpreter.prototype.eatToken = function (type) {
-        if (this.curToken.type == type) {
-            this.curToken = this.step();
+        if (this.ip > this.script.length - 1) {
+            this.curChar = null;
         }
         else {
-            throw Error("Error in parsing!");
+            this.curChar = this.script.charAt(this.ip).toString();
         }
     };
-    CalcInterpreter.prototype.evaluate = function () {
-        this.curToken = this.step();
-        var semantic = ["NUMBER", "ADDITION", "NUMBER"];
-        var results = [];
-        var i = 0;
+    CalcInterpreter.prototype.handleInteger = function () {
+        var soFar = '';
         while (true) {
-            results.push(this.curToken.value);
-            //console.log(`${this.curToken.type}, ${this.curToken.value}`);
-            try {
-                this.eatToken(semantic[i]);
-            }
-            catch (err) {
-                console.log("BREAK " + i);
+            //if reach end of file or hit a non number
+            if (!this.curChar || !(/\d/).test(this.curChar)) {
                 break;
             }
-            i += 1;
+            soFar += this.curChar;
+            this.nextChar();
         }
-        //console.log(`${results[0]}, ${results[2]}`);
-        return results[0] + results[2];
+        return { type: TokenTypes.NUMBER, value: parseInt(soFar) };
+    };
+    CalcInterpreter.prototype.eat = function (tokenType) {
+    };
+    CalcInterpreter.prototype.evaluate = function () {
+        var semantics = [TokenTypes.NUMBER, TokenTypes.ADDITION, TokenTypes.NUMBER];
+        var tokens = [];
+        this.nextChar();
+        for (var i = 0; i < this.script.length; i++) {
+            if ((/\d/).test(this.curChar)) { //if the current character is a number
+                tokens.push(this.handleInteger());
+            }
+            else if (this.curChar == '+') {
+                tokens.push({ type: TokenTypes.ADDITION, value: null });
+            }
+            else if (!this.curChar) { //if null, we have reached end of file
+                break;
+            }
+            this.nextChar();
+        }
+        for (var i = 0; i < tokens.length; i++) {
+            if (tokens[i].type != semantics[i]) {
+                return null;
+            }
+        }
+        return tokens[0].value + tokens[2].value;
     };
     return CalcInterpreter;
 }());

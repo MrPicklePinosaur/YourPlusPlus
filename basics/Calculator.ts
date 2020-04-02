@@ -1,18 +1,18 @@
 interface Token {
-    type: string;
+    type: TokenTypes;
     value: any;
 }
 
-const TokenTypes = {
-    NUMBER: 'NUMBER',
-    ADDITION: 'ADDITION',
-    EOF: 'EOF'
+enum TokenTypes {
+    NUMBER,
+    ADDITION,
+    EOF
 }
 
 class CalcInterpreter {
 
     script: string;
-    ip: number = 0; //instruction pointer
+    ip: number = -1; //instruction pointer
     curChar: string;
 
     constructor(script: string) {
@@ -26,25 +26,32 @@ class CalcInterpreter {
         } else {
             this.curChar = this.script.charAt(this.ip).toString();
         }
+
     }
 
-
     handleInteger(): Token {
-        var soFar: string;
+        var soFar: string = '';
 
         while (true) {
             //if reach end of file or hit a non number
-            if (this.curChar || !(/\d/).test(this.curChar)) { break; }
+            if (!this.curChar || !(/\d/).test(this.curChar)) { break; }
             soFar += this.curChar;
             this.nextChar();
         }
+
         return {type: TokenTypes.NUMBER, value: parseInt(soFar)}
     }
 
-    evaluate() {
+    eat(tokenType: TokenTypes) {
 
-        var semantics = [TokenTypes.NUMBER,TokenTypes.NUMBER,TokenTypes.NUMBER];
+    }
+
+    evaluate(): number {
+
+        var semantics = [TokenTypes.NUMBER,TokenTypes.ADDITION,TokenTypes.NUMBER];
         var tokens = [];
+
+        this.nextChar();
         for (var i = 0; i < this.script.length; i++) {
 
             if ((/\d/).test(this.curChar)) { //if the current character is a number
@@ -57,7 +64,14 @@ class CalcInterpreter {
 
             this.nextChar();
         }
-        console.log(tokens);
+
+        for (var i = 0; i < tokens.length; i++) {
+            if (tokens[i].type != semantics[i]) {
+                return null;
+            }
+        }
+        return tokens[0].value + tokens[2].value;
+
         
     }
 
@@ -71,5 +85,5 @@ document.getElementById('run-button').addEventListener('click',function() {
     var buildOutput = interpreter.evaluate();
 
     var out = document.getElementById('output');
-    //out.textContent = buildOutput.toString();
+    out.textContent = buildOutput.toString();
 });
