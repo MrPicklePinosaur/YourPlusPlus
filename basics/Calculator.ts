@@ -19,7 +19,6 @@ class CalcInterpreter {
     curChar: string;
 
     tokens: Token[] = [];
-    curToken: Token;
 
     constructor(script: string) {
         this.script = script;
@@ -35,7 +34,7 @@ class CalcInterpreter {
 
     }
 
-    handleInteger(): Token {
+    handleInteger(): Token { //handle multi character numbers
         var soFar: string = '';
 
         while (true) {
@@ -48,6 +47,7 @@ class CalcInterpreter {
         return {type: TokenTypes.NUMBER, value: parseInt(soFar)}
     }
 
+  
     evaluate(): number {
 
         //var semantics = [TokenTypes.NUMBER,TokenTypes.ADDITION,TokenTypes.NUMBER];
@@ -74,7 +74,7 @@ class CalcInterpreter {
             this.nextChar();
         }
 
-        /*
+        
         //check to see if syntax is valid
         var sum = 0;
         var positive = true;
@@ -89,55 +89,8 @@ class CalcInterpreter {
             } else {
                 return null; //throw error thingy
             }
-        }*/
-        
-
-        var sum = 0;
-        
-        this.curToken = this.getFirstToken();
-        sum += this.eat(TokenTypes.NUMBER).value;
-        try {
-            while (true) {
-
-                if (this.curToken.type == TokenTypes.POSITIVE) {
-                    this.eat(TokenTypes.POSITIVE);
-                    sum += this.eat(TokenTypes.NUMBER).value;
-                } else if (this.curToken.type == TokenTypes.NEGATIVE) {
-                    this.eat(TokenTypes.NEGATIVE);
-                    sum -= this.eat(TokenTypes.NUMBER).value;
-                } else { //if we reach a wrong expression
-                    throw SyntaxError("Invalid Syntax");
-                }
-            }
-        } catch (e) {
-            if (e instanceof RangeError) {
-                // do nothing
-            } else if (e instanceof SyntaxError) {
-                return null;
-            }
         }
-        console.log(sum);
         return sum;
-    }
-
-    eat(tokenType: TokenTypes): Token {
-        var oldToken = this.curToken;
-        if (oldToken.type != tokenType) {
-            throw SyntaxError("Invalid Syntax");
-        }
-        this.tokens.shift(); //pop first token
-        this.curToken = this.getFirstToken();
-
-        return oldToken;
-    }
-
-    getFirstToken(): Token {
-        var firstToken = this.tokens[0];
-        if (firstToken.type == TokenTypes.EOF) { //if null
-            throw RangeError("End of file reached");
-        }
-
-        return firstToken;
     }
 
 
@@ -148,7 +101,7 @@ document.getElementById('run-button').addEventListener('click',function() {
 
     //run code
     var interpreter = new CalcInterpreter(script);
-    var buildOutput = interpreter.evaluate();
+    var buildOutput = interpreter.expr();
 
     var out = document.getElementById('output');
 
