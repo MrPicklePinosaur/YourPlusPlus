@@ -38,32 +38,32 @@ var CalcInterpreter = /** @class */ (function () {
         for (var i = 0; i < this.script.length; i++) {
             if ((/\d/).test(this.curChar)) { //if the current character is a number
                 tokens.push(this.handleInteger());
+                continue;
             }
-            if (this.curChar == '+') {
+            else if (this.curChar == '+') {
                 tokens.push({ type: TokenTypes.POSITIVE, value: null });
             }
-            if (this.curChar == '-') {
+            else if (this.curChar == '-') {
                 tokens.push({ type: TokenTypes.NEGATIVE, value: null });
             }
-            if (!this.curChar) { //if null, we have reached end of file
+            else if (!this.curChar) { //if null, we have reached end of file
                 break;
             }
             this.nextChar();
         }
         //check to see if syntax is valid
-        console.log(tokens);
         var sum = 0;
         var positive = true;
         for (var i = 0; i < tokens.length; i++) {
             if (tokens[i].type == TokenTypes.POSITIVE) {
-                //nothing happens lmao
+                positive = true;
             }
             else if (tokens[i].type == TokenTypes.NEGATIVE) {
-                positive = !positive;
+                positive = (positive == null ? false : !positive);
             }
-            else if (tokens[i].type == TokenTypes.NUMBER) {
+            else if (tokens[i].type == TokenTypes.NUMBER && positive != null) { //make sure there is a sign preceding
                 sum += ((positive ? 1 : -1) * tokens[i].value);
-                positive = true; //reset sign 
+                positive = null; //reset sign 
             }
             else {
                 return null; //throw error thingy
