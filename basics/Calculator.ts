@@ -82,14 +82,19 @@ class CalcInterpreter {
         }
     }
 
-    evaluate(): number {
-        var product = 1;
-        this.curToken = this.nextToken();
+    evalFactor(): number {
 
+        this.curToken = this.nextToken();
         this.comp(this.curToken, TokenTypes.NUMBER);
-        product = this.curToken.value;
-
+        
+        var ans = this.curToken.value;
         this.curToken = this.nextToken();
+        return ans;
+    }
+
+    evalTerm(): number {
+
+        var ans = this.evalFactor();
 
         while (true) {
 
@@ -98,30 +103,24 @@ class CalcInterpreter {
             }
 
             if (this.curToken.type == TokenTypes.MULTIPLICATION) {
-                this.curToken = this.nextToken();
-                this.comp(this.curToken, TokenTypes.NUMBER);
-                product *= this.curToken.value;
+                ans *= this.evalFactor();
             } else if (this.curToken.type == TokenTypes.DIVISION) {
-                this.curToken = this.nextToken();
-                this.comp(this.curToken, TokenTypes.NUMBER);
-                if (this.curToken.value == 0) {
+                var divisor = this.evalFactor()
+                if (divisor == 0) {
                     throw Error(`Division by Zero`);
                 }
-                product /= this.curToken.value;
+                ans /= divisor;
             } 
 
-            this.curToken = this.nextToken();
 
         }
 
-        return product;
+        return ans;
     }
 
 
-    evalBedmas(): number {
-        var sum = 0;
-
-        sum += this.evaluate();
+    evalExpr(): number {
+        var ans = this.evalTerm();
 
         while (true) {
             if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
@@ -129,14 +128,14 @@ class CalcInterpreter {
             }
             
             if (this.curToken.type == TokenTypes.ADDITION) {
-                sum += this.evaluate();
+                ans += this.evalTerm();
             } else if (this.curToken.type == TokenTypes.SUBTRACTION) {
-                sum -= this.evaluate();
+                ans -= this.evalTerm();
             } 
 
         }
 
-        return sum;
+        return ans;
     }
 
     comp(token: Token, tokenType: TokenTypes) {
@@ -156,7 +155,7 @@ document.getElementById('run-button').addEventListener('click',function() {
     var buildOutput: string = null;
     
     try {
-        buildOutput = interpreter.evalBedmas().toString();
+        buildOutput = interpreter.evalExpr().toString();
     } catch(e) {
         //todo: add syntax highlighting for the position with the error
         buildOutput = `ERROR: ${e}`

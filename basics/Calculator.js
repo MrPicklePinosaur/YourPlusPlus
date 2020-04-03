@@ -65,48 +65,46 @@ var CalcInterpreter = /** @class */ (function () {
             }
         }
     };
-    CalcInterpreter.prototype.evaluate = function () {
-        var product = 1;
+    CalcInterpreter.prototype.evalFactor = function () {
         this.curToken = this.nextToken();
         this.comp(this.curToken, TokenTypes.NUMBER);
-        product = this.curToken.value;
+        var ans = this.curToken.value;
         this.curToken = this.nextToken();
+        return ans;
+    };
+    CalcInterpreter.prototype.evalTerm = function () {
+        var ans = this.evalFactor();
         while (true) {
             if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
                 break;
             }
             if (this.curToken.type == TokenTypes.MULTIPLICATION) {
-                this.curToken = this.nextToken();
-                this.comp(this.curToken, TokenTypes.NUMBER);
-                product *= this.curToken.value;
+                ans *= this.evalFactor();
             }
             else if (this.curToken.type == TokenTypes.DIVISION) {
-                this.curToken = this.nextToken();
-                this.comp(this.curToken, TokenTypes.NUMBER);
-                if (this.curToken.value == 0) {
+                var divisor = this.evalFactor();
+                if (divisor == 0) {
                     throw Error("Division by Zero");
                 }
-                product /= this.curToken.value;
+                ans /= divisor;
             }
-            this.curToken = this.nextToken();
         }
-        return product;
+        return ans;
     };
-    CalcInterpreter.prototype.evalBedmas = function () {
-        var sum = 0;
-        sum += this.evaluate();
+    CalcInterpreter.prototype.evalExpr = function () {
+        var ans = this.evalTerm();
         while (true) {
             if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
                 break;
             }
             if (this.curToken.type == TokenTypes.ADDITION) {
-                sum += this.evaluate();
+                ans += this.evalTerm();
             }
             else if (this.curToken.type == TokenTypes.SUBTRACTION) {
-                sum -= this.evaluate();
+                ans -= this.evalTerm();
             }
         }
-        return sum;
+        return ans;
     };
     CalcInterpreter.prototype.comp = function (token, tokenType) {
         if (token.type != tokenType) {
@@ -121,7 +119,7 @@ document.getElementById('run-button').addEventListener('click', function () {
     var interpreter = new CalcInterpreter(script);
     var buildOutput = null;
     try {
-        buildOutput = interpreter.evalBedmas().toString();
+        buildOutput = interpreter.evalExpr().toString();
     }
     catch (e) {
         //todo: add syntax highlighting for the position with the error
