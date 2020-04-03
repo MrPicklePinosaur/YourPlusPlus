@@ -48,7 +48,7 @@ class CalcInterpreter {
         return {type: TokenTypes.NUMBER, value: parseInt(soFar)}
     }
 
-    /*
+    
     nextToken(): Token {
         var token: Token = null;
         while(true) { //keep searching until a valid token is found
@@ -73,86 +73,42 @@ class CalcInterpreter {
             }
 
         }
-
-        
-        /*else if (!this.curChar) { //if null, we have reached end of file
-            return {type: TokenTypes.EOF, value: null};
-        } 
     }
 
-    expr(): number {
-        //check to see if syntax is valid
-        var sum = 0;
-        var positive = true;
-        var curToken = this.nextToken();
-
-        while (curToken) { //while curToken is not null
-            console.log(curToken)
-            if (curToken.type == TokenTypes.POSITIVE) {
-                positive = true;
-            } else if (curToken.type == TokenTypes.NEGATIVE) {
-                positive = (positive == null ? false : !positive);
-            } else if (curToken.type == TokenTypes.NUMBER && positive != null) { //make sure there is a sign preceding
-                sum += ((positive ? 1 : -1)*curToken.value);
-                positive = null; //reset sign 
-            }
-            curToken = this.nextToken();
-
-        }
-        console.log(`sum ${sum}`);
-        return sum;
-    }
-    */
-
-    
     evaluate(): number {
-
-        //var semantics = [TokenTypes.NUMBER,TokenTypes.ADDITION,TokenTypes.NUMBER];
-        //lexify
-        this.nextChar();
-        for (var i = 0; i < this.script.length; i++) {
-
-            if ((/\d/).test(this.curChar)) { //if the current character is a number
-                this.tokens.push(this.handleInteger());
-                continue;
-            } else if (this.curChar == '+') {
-                this.tokens.push({type: TokenTypes.POSITIVE, value: null});
-            } else if (this.curChar == '-') {
-                this.tokens.push({type: TokenTypes.NEGATIVE, value: null});
-            } else if ((/[\*x]/).test(this.curChar)) {
-                this.tokens.push({type: TokenTypes.MULTIPLICATION, value: null});
-            } else if (this.curChar == '/') {
-                this.tokens.push({type: TokenTypes.DIVISION, value: null});
-            } else if (!this.curChar) { //if null, we have reached end of file
-                this.tokens.push({type: TokenTypes.EOF, value: null});
-                break;
-            }
-
-            this.nextChar();
-        }
-
-        
-        //check to see if syntax is valid
         var sum = 0;
-        var positive = true;
-        for (var i = 0; i < this.tokens.length; i++) {
-            if (this.tokens[i].type == TokenTypes.POSITIVE) {
-                positive = true;
-            } else if (this.tokens[i].type == TokenTypes.NEGATIVE) {
-                positive = (positive == null ? false : !positive);
-            } else if (this.tokens[i].type == TokenTypes.NUMBER && positive != null) { //make sure there is a sign preceding
-                sum += ((positive ? 1 : -1)*this.tokens[i].value);
-                positive = null; //reset sign 
-            } else {
-                return null; //throw error thingy
+        var token: Token = this.nextToken();
+
+        this.comp(token, TokenTypes.NUMBER);
+        sum += token.value;
+
+        while (true) {
+            token = this.nextToken();
+
+            if (token.type == TokenTypes.POSITIVE) {
+                token = this.nextToken();
+                this.comp(token, TokenTypes.NUMBER);
+                sum += token.value;
+            } else if (token.type == TokenTypes.NEGATIVE) {
+                token = this.nextToken();
+                this.comp(token, TokenTypes.NUMBER);
+                sum -= token.value;
+            } else if (token.type == TokenTypes.EOF) { //reached end of file
+                break;
+            } else { //invalid token
+                throw SyntaxError("Invalid Token");
             }
         }
+
         return sum;
     }
-    
-        
 
+    comp(token: Token, tokenType: TokenTypes) {
 
+        if (token.type != tokenType) {
+            throw SyntaxError("invalid syntax");
+        }
+    }
 
 }
 
@@ -161,7 +117,13 @@ document.getElementById('run-button').addEventListener('click',function() {
 
     //run code
     var interpreter = new CalcInterpreter(script);
-    var buildOutput = interpreter.evaluate();
+    var buildOutput: number = null;
+    
+    try {
+        buildOutput = interpreter.evaluate();
+    } catch(e) {
+
+    }
 
     var out = document.getElementById('output');
 
