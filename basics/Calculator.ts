@@ -89,14 +89,13 @@ class CalcInterpreter {
         this.comp(this.curToken, TokenTypes.NUMBER);
         product = this.curToken.value;
 
+        this.curToken = this.nextToken();
+
         while (true) {
 
             if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
                 break;
             }
-
-            this.curToken = this.nextToken();
-
 
             if (this.curToken.type == TokenTypes.MULTIPLICATION) {
                 this.curToken = this.nextToken();
@@ -110,6 +109,8 @@ class CalcInterpreter {
                 }
                 product /= this.curToken.value;
             } 
+
+            this.curToken = this.nextToken();
 
         }
 
@@ -127,13 +128,12 @@ class CalcInterpreter {
                 break;
             }
             
-            this.curToken = this.nextToken();
-
             if (this.curToken.type == TokenTypes.ADDITION) {
                 sum += this.evaluate();
             } else if (this.curToken.type == TokenTypes.SUBTRACTION) {
                 sum -= this.evaluate();
             } 
+
         }
 
         return sum;

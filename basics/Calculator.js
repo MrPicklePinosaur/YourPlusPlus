@@ -70,11 +70,11 @@ var CalcInterpreter = /** @class */ (function () {
         this.curToken = this.nextToken();
         this.comp(this.curToken, TokenTypes.NUMBER);
         product = this.curToken.value;
+        this.curToken = this.nextToken();
         while (true) {
             if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
                 break;
             }
-            this.curToken = this.nextToken();
             if (this.curToken.type == TokenTypes.MULTIPLICATION) {
                 this.curToken = this.nextToken();
                 this.comp(this.curToken, TokenTypes.NUMBER);
@@ -88,6 +88,7 @@ var CalcInterpreter = /** @class */ (function () {
                 }
                 product /= this.curToken.value;
             }
+            this.curToken = this.nextToken();
         }
         return product;
     };
@@ -98,7 +99,6 @@ var CalcInterpreter = /** @class */ (function () {
             if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
                 break;
             }
-            this.curToken = this.nextToken();
             if (this.curToken.type == TokenTypes.ADDITION) {
                 sum += this.evaluate();
             }
