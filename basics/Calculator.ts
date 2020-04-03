@@ -1,12 +1,14 @@
 interface Token {
     type: TokenTypes;
     value: any;
+    position: number;
 }
+
 
 enum TokenTypes {
     NUMBER,
-    POSITIVE,
-    NEGATIVE,
+    ADDITION,
+    SUBTRACTION,
     MULTIPLICATION,
     DIVISION,
     EOF
@@ -15,7 +17,7 @@ enum TokenTypes {
 class CalcInterpreter {
 
     script: string;
-    ip: number = -1; //instruction pointer
+    ip: number = -1; //position of character (instruction pointer, prob rename later)
     curChar: string;
 
     tokens: Token[] = [];
@@ -23,6 +25,10 @@ class CalcInterpreter {
     constructor(script: string) {
         this.script = script;
         this.nextChar();
+    }
+
+    newToken(type: TokenTypes, value: any): Token {
+        return {type: type, value: value, position: this.ip};
     }
 
     nextChar(): void {
@@ -45,7 +51,7 @@ class CalcInterpreter {
             this.nextChar();
         }
 
-        return {type: TokenTypes.NUMBER, value: parseInt(soFar)}
+        return this.newToken(TokenTypes.NUMBER, parseInt(soFar));
     }
 
     
@@ -56,15 +62,15 @@ class CalcInterpreter {
             if ((/\d/).test(this.curChar)) { //if the current character is a number
                 return this.handleInteger();
             } else if (this.curChar == '+') {
-                token = {type: TokenTypes.POSITIVE, value: null};
+                token = this.newToken(TokenTypes.ADDITION, null);
             } else if (this.curChar == '-') {
-                token = {type: TokenTypes.NEGATIVE, value: null};
+                token = this.newToken(TokenTypes.SUBTRACTION, null);
             } else if ((/[\*x]/).test(this.curChar)) {
-                token = {type: TokenTypes.MULTIPLICATION, value: null};
+                token = this.newToken(TokenTypes.MULTIPLICATION, null);
             } else if (this.curChar == '/') {
-                token = {type: TokenTypes.DIVISION, value: null};
+                token = this.newToken(TokenTypes.DIVISION, null);
             } else if (this.curChar == null) {
-                return {type: TokenTypes.EOF, value: null};
+                return this.newToken(TokenTypes.EOF, null);
             }
 
             this.nextChar();
@@ -85,18 +91,18 @@ class CalcInterpreter {
         while (true) {
             token = this.nextToken();
 
-            if (token.type == TokenTypes.POSITIVE) {
+            if (token.type == TokenTypes.ADDITION) {
                 token = this.nextToken();
                 this.comp(token, TokenTypes.NUMBER);
                 sum += token.value;
-            } else if (token.type == TokenTypes.NEGATIVE) {
+            } else if (token.type == TokenTypes.SUBTRACTION) {
                 token = this.nextToken();
                 this.comp(token, TokenTypes.NUMBER);
                 sum -= token.value;
             } else if (token.type == TokenTypes.EOF) { //reached end of file
                 break;
             } else { //invalid token
-                throw SyntaxError("Invalid Token");
+                throw SyntaxError(`Unknown Token at position ${token.position}`);
             }
         }
 
@@ -106,7 +112,7 @@ class CalcInterpreter {
     comp(token: Token, tokenType: TokenTypes) {
 
         if (token.type != tokenType) {
-            throw SyntaxError("invalid syntax");
+            throw SyntaxError(`Invalid syntax at position ${token.position}`);
         }
     }
 
@@ -117,20 +123,15 @@ document.getElementById('run-button').addEventListener('click',function() {
 
     //run code
     var interpreter = new CalcInterpreter(script);
-    var buildOutput: number = null;
+    var buildOutput: string = null;
     
     try {
-        buildOutput = interpreter.evaluate();
+        buildOutput = interpreter.evaluate().toString();
     } catch(e) {
-
+        buildOutput = `ERROR: ${e}`
     }
 
     var out = document.getElementById('output');
-
-    if (buildOutput != null) { //if the output was not null
-        out.textContent = buildOutput.toString();
-    } else {
-        out.textContent = 'ERROR';
-    }
+    out.textContent = buildOutput;
     
 });

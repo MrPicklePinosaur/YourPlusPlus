@@ -1,19 +1,22 @@
 var TokenTypes;
 (function (TokenTypes) {
     TokenTypes[TokenTypes["NUMBER"] = 0] = "NUMBER";
-    TokenTypes[TokenTypes["POSITIVE"] = 1] = "POSITIVE";
-    TokenTypes[TokenTypes["NEGATIVE"] = 2] = "NEGATIVE";
+    TokenTypes[TokenTypes["ADDITION"] = 1] = "ADDITION";
+    TokenTypes[TokenTypes["SUBTRACTION"] = 2] = "SUBTRACTION";
     TokenTypes[TokenTypes["MULTIPLICATION"] = 3] = "MULTIPLICATION";
     TokenTypes[TokenTypes["DIVISION"] = 4] = "DIVISION";
     TokenTypes[TokenTypes["EOF"] = 5] = "EOF";
 })(TokenTypes || (TokenTypes = {}));
 var CalcInterpreter = /** @class */ (function () {
     function CalcInterpreter(script) {
-        this.ip = -1; //instruction pointer
+        this.ip = -1; //position of character (instruction pointer, prob rename later)
         this.tokens = [];
         this.script = script;
         this.nextChar();
     }
+    CalcInterpreter.prototype.newToken = function (type, value) {
+        return { type: type, value: value, position: this.ip };
+    };
     CalcInterpreter.prototype.nextChar = function () {
         this.ip += 1;
         if (this.ip > this.script.length - 1) {
@@ -33,7 +36,7 @@ var CalcInterpreter = /** @class */ (function () {
             soFar += this.curChar;
             this.nextChar();
         }
-        return { type: TokenTypes.NUMBER, value: parseInt(soFar) };
+        return this.newToken(TokenTypes.NUMBER, parseInt(soFar));
     };
     CalcInterpreter.prototype.nextToken = function () {
         var token = null;
@@ -42,19 +45,19 @@ var CalcInterpreter = /** @class */ (function () {
                 return this.handleInteger();
             }
             else if (this.curChar == '+') {
-                token = { type: TokenTypes.POSITIVE, value: null };
+                token = this.newToken(TokenTypes.ADDITION, null);
             }
             else if (this.curChar == '-') {
-                token = { type: TokenTypes.NEGATIVE, value: null };
+                token = this.newToken(TokenTypes.SUBTRACTION, null);
             }
             else if ((/[\*x]/).test(this.curChar)) {
-                token = { type: TokenTypes.MULTIPLICATION, value: null };
+                token = this.newToken(TokenTypes.MULTIPLICATION, null);
             }
             else if (this.curChar == '/') {
-                token = { type: TokenTypes.DIVISION, value: null };
+                token = this.newToken(TokenTypes.DIVISION, null);
             }
             else if (this.curChar == null) {
-                return { type: TokenTypes.EOF, value: null };
+                return this.newToken(TokenTypes.EOF, null);
             }
             this.nextChar();
             if (token != null) {
@@ -69,12 +72,12 @@ var CalcInterpreter = /** @class */ (function () {
         sum += token.value;
         while (true) {
             token = this.nextToken();
-            if (token.type == TokenTypes.POSITIVE) {
+            if (token.type == TokenTypes.ADDITION) {
                 token = this.nextToken();
                 this.comp(token, TokenTypes.NUMBER);
                 sum += token.value;
             }
-            else if (token.type == TokenTypes.NEGATIVE) {
+            else if (token.type == TokenTypes.SUBTRACTION) {
                 token = this.nextToken();
                 this.comp(token, TokenTypes.NUMBER);
                 sum -= token.value;
@@ -83,14 +86,14 @@ var CalcInterpreter = /** @class */ (function () {
                 break;
             }
             else { //invalid token
-                throw SyntaxError("Invalid Token");
+                throw SyntaxError("Invalid Token at position " + token.position);
             }
         }
         return sum;
     };
     CalcInterpreter.prototype.comp = function (token, tokenType) {
         if (token.type != tokenType) {
-            throw SyntaxError("invalid syntax");
+            throw SyntaxError("Invalid syntax at position " + token.position);
         }
     };
     return CalcInterpreter;
@@ -101,15 +104,11 @@ document.getElementById('run-button').addEventListener('click', function () {
     var interpreter = new CalcInterpreter(script);
     var buildOutput = null;
     try {
-        buildOutput = interpreter.evaluate();
+        buildOutput = interpreter.evaluate().toString();
     }
     catch (e) {
+        buildOutput = "ERROR: " + e;
     }
     var out = document.getElementById('output');
-    if (buildOutput != null) { //if the output was not null
-        out.textContent = buildOutput.toString();
-    }
-    else {
-        out.textContent = 'ERROR';
-    }
+    out.textContent = buildOutput;
 });
