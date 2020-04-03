@@ -6,6 +6,8 @@ var TokenTypes;
     TokenTypes[TokenTypes["MULTIPLICATION"] = 3] = "MULTIPLICATION";
     TokenTypes[TokenTypes["DIVISION"] = 4] = "DIVISION";
     TokenTypes[TokenTypes["EOF"] = 5] = "EOF";
+    TokenTypes[TokenTypes["OPENBRACKET"] = 6] = "OPENBRACKET";
+    TokenTypes[TokenTypes["CLOSEBRACKET"] = 7] = "CLOSEBRACKET";
 })(TokenTypes || (TokenTypes = {}));
 var CalcInterpreter = /** @class */ (function () {
     function CalcInterpreter(script) {
@@ -59,6 +61,12 @@ var CalcInterpreter = /** @class */ (function () {
             else if (this.curChar == null) {
                 return this.newToken(TokenTypes.EOF, null);
             }
+            else if (this.curChar == '(') {
+                token = this.newToken(TokenTypes.OPENBRACKET, null);
+            }
+            else if (this.curChar == ')') {
+                token = this.newToken(TokenTypes.CLOSEBRACKET, null);
+            }
             this.nextChar();
             if (token != null) {
                 return token;
@@ -66,9 +74,19 @@ var CalcInterpreter = /** @class */ (function () {
         }
     };
     CalcInterpreter.prototype.evalFactor = function () {
+        var ans = 0;
         this.curToken = this.nextToken();
-        this.comp(this.curToken, TokenTypes.NUMBER);
-        var ans = this.curToken.value;
+        if (this.curToken.type == TokenTypes.NUMBER) {
+            ans = this.curToken.value;
+        }
+        else if (this.curToken.type == TokenTypes.OPENBRACKET) {
+            //this.curToken = this.nextToken();
+            ans = this.evalExpr();
+            this.comp(this.curToken, TokenTypes.CLOSEBRACKET);
+        }
+        else {
+            throw SyntaxError("Invalid Factor");
+        }
         this.curToken = this.nextToken();
         return ans;
     };

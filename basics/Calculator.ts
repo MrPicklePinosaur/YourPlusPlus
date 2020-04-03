@@ -11,7 +11,9 @@ enum TokenTypes {
     SUBTRACTION,
     MULTIPLICATION,
     DIVISION,
-    EOF
+    EOF,
+    OPENBRACKET,
+    CLOSEBRACKET
 }
 
 class CalcInterpreter {
@@ -72,6 +74,10 @@ class CalcInterpreter {
                 token = this.newToken(TokenTypes.DIVISION, null);
             } else if (this.curChar == null) {
                 return this.newToken(TokenTypes.EOF, null);
+            } else if (this.curChar == '(') {
+                token = this.newToken(TokenTypes.OPENBRACKET, null);
+            } else if (this.curChar == ')') {
+                token = this.newToken(TokenTypes.CLOSEBRACKET, null);
             }
 
             this.nextChar();
@@ -84,11 +90,21 @@ class CalcInterpreter {
 
     evalFactor(): number {
 
+        var ans = 0;
+
         this.curToken = this.nextToken();
-        this.comp(this.curToken, TokenTypes.NUMBER);
-        
-        var ans = this.curToken.value;
+
+        if (this.curToken.type == TokenTypes.NUMBER) {
+            ans = this.curToken.value;
+        } else if (this.curToken.type == TokenTypes.OPENBRACKET) {
+            ans = this.evalExpr();
+            this.comp(this.curToken,TokenTypes.CLOSEBRACKET);
+        } else {
+            throw SyntaxError("Invalid Factor");
+        }
+
         this.curToken = this.nextToken();
+
         return ans;
     }
 
