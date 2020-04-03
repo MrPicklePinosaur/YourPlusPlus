@@ -66,27 +66,44 @@ var CalcInterpreter = /** @class */ (function () {
         }
     };
     CalcInterpreter.prototype.evaluate = function () {
-        var sum = 0;
-        var token = this.nextToken();
-        this.comp(token, TokenTypes.NUMBER);
-        sum += token.value;
+        var product = 1;
+        this.curToken = this.nextToken();
+        this.comp(this.curToken, TokenTypes.NUMBER);
+        product = this.curToken.value;
         while (true) {
-            token = this.nextToken();
-            if (token.type == TokenTypes.ADDITION) {
-                token = this.nextToken();
-                this.comp(token, TokenTypes.NUMBER);
-                sum += token.value;
-            }
-            else if (token.type == TokenTypes.SUBTRACTION) {
-                token = this.nextToken();
-                this.comp(token, TokenTypes.NUMBER);
-                sum -= token.value;
-            }
-            else if (token.type == TokenTypes.EOF) { //reached end of file
+            if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
                 break;
             }
-            else { //invalid token
-                throw SyntaxError("Invalid Token at position " + token.position);
+            this.curToken = this.nextToken();
+            if (this.curToken.type == TokenTypes.MULTIPLICATION) {
+                this.curToken = this.nextToken();
+                this.comp(this.curToken, TokenTypes.NUMBER);
+                product *= this.curToken.value;
+            }
+            else if (this.curToken.type == TokenTypes.DIVISION) {
+                this.curToken = this.nextToken();
+                this.comp(this.curToken, TokenTypes.NUMBER);
+                if (this.curToken.value == 0) {
+                    throw Error("Division by Zero");
+                }
+                product /= this.curToken.value;
+            }
+        }
+        return product;
+    };
+    CalcInterpreter.prototype.evalBedmas = function () {
+        var sum = 0;
+        sum += this.evaluate();
+        while (true) {
+            if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
+                break;
+            }
+            this.curToken = this.nextToken();
+            if (this.curToken.type == TokenTypes.ADDITION) {
+                sum += this.evaluate();
+            }
+            else if (this.curToken.type == TokenTypes.SUBTRACTION) {
+                sum -= this.evaluate();
             }
         }
         return sum;
@@ -104,9 +121,10 @@ document.getElementById('run-button').addEventListener('click', function () {
     var interpreter = new CalcInterpreter(script);
     var buildOutput = null;
     try {
-        buildOutput = interpreter.evaluate().toString();
+        buildOutput = interpreter.evalBedmas().toString();
     }
     catch (e) {
+        //todo: add syntax highlighting for the position with the error
         buildOutput = "ERROR: " + e;
     }
     var out = document.getElementById('output');
