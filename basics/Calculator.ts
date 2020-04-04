@@ -16,6 +16,17 @@ enum TokenTypes {
     CLOSEBRACKET
 }
 
+class ScriptError extends Error {
+    position: number;
+
+    constructor(name: string, message: string, position: number) {
+        super(message);
+        this.name = name;
+        this.message = message;
+        this.position = position;
+    }
+}
+
 class CalcInterpreter {
 
     script: string;
@@ -73,7 +84,7 @@ class CalcInterpreter {
             } else if (this.curChar == '/') {
                 token = this.newToken(TokenTypes.DIVISION, null);
             } else if (this.curChar == null) {
-                return this.newToken(TokenTypes.EOF, null);
+                token = this.newToken(TokenTypes.EOF, null);
             } else if (this.curChar == '(') {
                 token = this.newToken(TokenTypes.OPENBRACKET, null);
             } else if (this.curChar == ')') {
@@ -100,7 +111,7 @@ class CalcInterpreter {
             ans = this.evalExpr();
             this.comp(this.curToken,TokenTypes.CLOSEBRACKET);
         } else {
-            throw SyntaxError("Invalid Factor");
+            throw new ScriptError('Syntax Error','Invalid Factor',this.curToken.position);
         }
 
         this.curToken = this.nextToken();
@@ -123,7 +134,7 @@ class CalcInterpreter {
             } else if (this.curToken.type == TokenTypes.DIVISION) {
                 var divisor = this.evalFactor()
                 if (divisor == 0) {
-                    throw Error(`Division by Zero`);
+                    throw new ScriptError('Math Error','Division by Zero',this.curToken.position);
                 }
                 ans /= divisor;
             } 
@@ -157,14 +168,17 @@ class CalcInterpreter {
     comp(token: Token, tokenType: TokenTypes) {
 
         if (token.type != tokenType) {
-            throw SyntaxError(`Invalid syntax at position ${token.position}`);
+            throw new ScriptError('Syntax Error','Invalid syntax at position', token.position);
         }
     }
 
 }
 
+var raw_input = '';
+var isError = false;
 document.getElementById('run-button').addEventListener('click',function() {
-    var script = (<HTMLInputElement>document.getElementById('editor')).value;
+    var editor = (<HTMLInputElement>document.getElementById('editor'));
+    var script = editor.innerHTML;
 
     //run code
     var interpreter = new CalcInterpreter(script);
@@ -174,10 +188,23 @@ document.getElementById('run-button').addEventListener('click',function() {
         buildOutput = interpreter.evalExpr().toString();
     } catch(e) {
         //todo: add syntax highlighting for the position with the error
-        buildOutput = `ERROR: ${e}`
+        buildOutput = `${e} at position ${e.position}`
+
+        raw_input = script;
+        editor.innerHTML = `${script.slice(0,e.position)}<span class="underline">${script.slice(e.position,e.position+1)}</span>${script.slice(e.position+1,script.length)}`
+        isError = true;
     }
 
     var out = document.getElementById('output');
-    out.textContent = buildOutput;
-    
+    out.textContent = buildOutput; 
 });
+
+/*
+document.getElementById('editor').addEventListener('input', function() {//wipe textunderlines after edit
+    if (isError) {
+        var editor = (<HTMLInputElement>document.getElementById('editor'));
+        editor.innerHTML = raw_input;
+        isError = false;
+    }
+});
+*/

@@ -1,3 +1,16 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var TokenTypes;
 (function (TokenTypes) {
     TokenTypes[TokenTypes["NUMBER"] = 0] = "NUMBER";
@@ -9,6 +22,17 @@ var TokenTypes;
     TokenTypes[TokenTypes["OPENBRACKET"] = 6] = "OPENBRACKET";
     TokenTypes[TokenTypes["CLOSEBRACKET"] = 7] = "CLOSEBRACKET";
 })(TokenTypes || (TokenTypes = {}));
+var ScriptError = /** @class */ (function (_super) {
+    __extends(ScriptError, _super);
+    function ScriptError(name, message, position) {
+        var _this = _super.call(this, message) || this;
+        _this.name = name;
+        _this.message = message;
+        _this.position = position;
+        return _this;
+    }
+    return ScriptError;
+}(Error));
 var CalcInterpreter = /** @class */ (function () {
     function CalcInterpreter(script) {
         this.ip = -1; //position of character (instruction pointer, prob rename later)
@@ -59,7 +83,7 @@ var CalcInterpreter = /** @class */ (function () {
                 token = this.newToken(TokenTypes.DIVISION, null);
             }
             else if (this.curChar == null) {
-                return this.newToken(TokenTypes.EOF, null);
+                token = this.newToken(TokenTypes.EOF, null);
             }
             else if (this.curChar == '(') {
                 token = this.newToken(TokenTypes.OPENBRACKET, null);
@@ -80,12 +104,11 @@ var CalcInterpreter = /** @class */ (function () {
             ans = this.curToken.value;
         }
         else if (this.curToken.type == TokenTypes.OPENBRACKET) {
-            //this.curToken = this.nextToken();
             ans = this.evalExpr();
             this.comp(this.curToken, TokenTypes.CLOSEBRACKET);
         }
         else {
-            throw SyntaxError("Invalid Factor");
+            throw new ScriptError('Syntax Error', 'Invalid Factor', this.curToken.position);
         }
         this.curToken = this.nextToken();
         return ans;
@@ -102,7 +125,7 @@ var CalcInterpreter = /** @class */ (function () {
             else if (this.curToken.type == TokenTypes.DIVISION) {
                 var divisor = this.evalFactor();
                 if (divisor == 0) {
-                    throw Error("Division by Zero");
+                    throw new ScriptError('Math Error', 'Division by Zero', this.curToken.position);
                 }
                 ans /= divisor;
             }
@@ -126,13 +149,16 @@ var CalcInterpreter = /** @class */ (function () {
     };
     CalcInterpreter.prototype.comp = function (token, tokenType) {
         if (token.type != tokenType) {
-            throw SyntaxError("Invalid syntax at position " + token.position);
+            throw new ScriptError('Syntax Error', 'Invalid syntax at position', token.position);
         }
     };
     return CalcInterpreter;
 }());
+var raw_input = '';
+var isError = false;
 document.getElementById('run-button').addEventListener('click', function () {
-    var script = document.getElementById('editor').value;
+    var editor = document.getElementById('editor');
+    var script = editor.innerHTML;
     //run code
     var interpreter = new CalcInterpreter(script);
     var buildOutput = null;
@@ -141,8 +167,18 @@ document.getElementById('run-button').addEventListener('click', function () {
     }
     catch (e) {
         //todo: add syntax highlighting for the position with the error
-        buildOutput = "ERROR: " + e;
+        buildOutput = e + " at position " + e.position;
+        raw_input = script;
+        editor.innerHTML = script.slice(0, e.position) + "<span class=\"underline\">" + script.slice(e.position, e.position + 1) + "</span>" + script.slice(e.position + 1, script.length);
+        isError = true;
     }
     var out = document.getElementById('output');
     out.textContent = buildOutput;
+});
+document.getElementById('editor').addEventListener('input', function () {
+    if (isError) {
+        var editor = document.getElementById('editor');
+        editor.innerHTML = raw_input;
+        isError = false;
+    }
 });

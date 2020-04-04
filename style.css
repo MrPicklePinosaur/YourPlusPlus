@@ -3,3 +3,9 @@
     height: 40%;
     min-height: 250px;
 }
+
+.underline {
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-color: red;
+}
