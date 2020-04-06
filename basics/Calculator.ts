@@ -27,6 +27,25 @@ class ScriptError extends Error {
     }
 }
 
+class AST {
+
+    root: ASTNode;
+}
+
+class ASTNode {
+
+    token: Token;
+    left: ASTNode;
+    right: ASTNode;
+
+    constructor(token: Token) {
+        this.token = token;
+    }
+    
+    isLeaf(): Boolean {
+        return (this.left == null && this.right == null) ? true : false;
+    }
+}
 class CalcInterpreter {
 
     script: string;
@@ -190,9 +209,11 @@ document.getElementById('run-button').addEventListener('click',function() {
         //todo: add syntax highlighting for the position with the error
         buildOutput = `${e} at position ${e.position}`
 
+        /*
         raw_input = script;
         editor.innerHTML = `${script.slice(0,e.position)}<span class="underline">${script.slice(e.position,e.position+1)}</span>${script.slice(e.position+1,script.length)}`
         isError = true;
+        */
     }
 
     var out = document.getElementById('output');
