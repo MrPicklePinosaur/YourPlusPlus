@@ -33,17 +33,16 @@ var ScriptError = /** @class */ (function (_super) {
     }
     return ScriptError;
 }(Error));
-var CalcInterpreter = /** @class */ (function () {
-    function CalcInterpreter(script) {
+var CalcLexer = /** @class */ (function () {
+    function CalcLexer(script) {
         this.ip = -1; //position of character (instruction pointer, prob rename later)
-        this.tokens = [];
         this.script = script;
         this.nextChar();
     }
-    CalcInterpreter.prototype.newToken = function (type, value) {
+    CalcLexer.prototype.newToken = function (type, value) {
         return { type: type, value: value, position: this.ip };
     };
-    CalcInterpreter.prototype.nextChar = function () {
+    CalcLexer.prototype.nextChar = function () {
         this.ip += 1;
         if (this.ip > this.script.length - 1) {
             this.curChar = null;
@@ -52,7 +51,7 @@ var CalcInterpreter = /** @class */ (function () {
             this.curChar = this.script.charAt(this.ip).toString();
         }
     };
-    CalcInterpreter.prototype.handleInteger = function () {
+    CalcLexer.prototype.handleInteger = function () {
         var soFar = '';
         while (true) {
             //if reach end of file or hit a non number
@@ -64,7 +63,7 @@ var CalcInterpreter = /** @class */ (function () {
         }
         return this.newToken(TokenTypes.NUMBER, parseInt(soFar));
     };
-    CalcInterpreter.prototype.nextToken = function () {
+    CalcLexer.prototype.nextToken = function () {
         var token = null;
         while (true) { //keep searching until a valid token is found
             if ((/\d/).test(this.curChar)) { //if the current character is a number
@@ -97,9 +96,17 @@ var CalcInterpreter = /** @class */ (function () {
             }
         }
     };
-    CalcInterpreter.prototype.evalFactor = function () {
+    return CalcLexer;
+}());
+var CalcParser = /** @class */ (function () {
+    function CalcParser(lexer) {
+        this.tokens = [];
+        this.lexer = lexer;
+    }
+    // SYNTAX-DIRECTION INTERPRETER CODE
+    CalcParser.prototype.evalFactor = function () {
         var ans = 0;
-        this.curToken = this.nextToken();
+        this.curToken = this.lexer.nextToken();
         if (this.curToken.type == TokenTypes.NUMBER) {
             ans = this.curToken.value;
         }
@@ -110,10 +117,10 @@ var CalcInterpreter = /** @class */ (function () {
         else {
             throw new ScriptError('Syntax Error', 'Invalid Factor', this.curToken.position);
         }
-        this.curToken = this.nextToken();
+        this.curToken = this.lexer.nextToken();
         return ans;
     };
-    CalcInterpreter.prototype.evalTerm = function () {
+    CalcParser.prototype.evalTerm = function () {
         var ans = this.evalFactor();
         while (true) {
             if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
@@ -132,7 +139,7 @@ var CalcInterpreter = /** @class */ (function () {
         }
         return ans;
     };
-    CalcInterpreter.prototype.evalExpr = function () {
+    CalcParser.prototype.evalExpr = function () {
         var ans = this.evalTerm();
         while (true) {
             if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
@@ -147,20 +154,88 @@ var CalcInterpreter = /** @class */ (function () {
         }
         return ans;
     };
-    CalcInterpreter.prototype.comp = function (token, tokenType) {
+    CalcParser.prototype.comp = function (token, tokenType) {
         if (token.type != tokenType) {
             throw new ScriptError('Syntax Error', 'Invalid syntax at position', token.position);
         }
     };
+    return CalcParser;
+}());
+var CalcInterpreter = /** @class */ (function () {
+    function CalcInterpreter() {
+    }
+    //INTERMEDIATE REPRESENTATION INTERPRETER CODE
+    CalcInterpreter.prototype.visitTree = function (tree) {
+        this.visit(tree.root);
+    };
+    CalcInterpreter.prototype.visit = function (node) {
+        if (node == null) {
+            throw new ScriptError("NullException", "Node attempting to visit is null", node.token.position);
+        }
+        var binop = [TokenTypes.ADDITION, TokenTypes.SUBTRACTION, TokenTypes.MULTIPLICATION, TokenTypes.DIVISION];
+        if (binop.indexOf(node.type) != -1) {
+            return this.visit_BinOp(node);
+        }
+        else if (node.type == TokenTypes.NUMBER) {
+            return this.visit_Number(node);
+        }
+        else {
+            throw new ScriptError("", "Invalid node type", node.token.position);
+        }
+    };
+    CalcInterpreter.prototype.visit_BinOp = function (node) {
+        if (node.type == TokenTypes.ADDITION) {
+            return this.visit(node.left) + this.visit(node.right);
+        }
+        else if (node.type == TokenTypes.SUBTRACTION) {
+            return this.visit(node.left) - this.visit(node.right);
+        }
+        else if (node.type == TokenTypes.MULTIPLICATION) {
+            return this.visit(node.left) * this.visit(node.right);
+        }
+        else if (node.type == TokenTypes.DIVISION) {
+            return this.visit(node.left) / this.visit(node.right);
+        }
+        else {
+            throw new ScriptError("", "BinOp not found", node.token.position);
+        }
+    };
+    CalcInterpreter.prototype.visit_Number = function (node) {
+        var val = node.value;
+        if (val == null) {
+            throw new ScriptError("NullException", "Number node value is null", node.token.position);
+        }
+        return val;
+    };
     return CalcInterpreter;
+}());
+var AST = /** @class */ (function () {
+    function AST() {
+    }
+    return AST;
+}());
+var ASTNode = /** @class */ (function () {
+    function ASTNode(token) {
+        this.token = token;
+        this.type = token.type;
+        this.value = token.value;
+    }
+    ASTNode.prototype.isLeaf = function () {
+        return (this.left == null && this.right == null) ? true : false;
+    };
+    return ASTNode;
 }());
 var raw_input = '';
 var isError = false;
 document.getElementById('run-button').addEventListener('click', function () {
+    //Build an AST
+    var ast = new AST();
+    //var one = new ASTNode();
     var editor = document.getElementById('editor');
     var script = editor.innerHTML;
     //run code
-    var interpreter = new CalcInterpreter(script);
+    var lexer = new CalcLexer(script);
+    var interpreter = new CalcParser(lexer);
     var buildOutput = null;
     try {
         buildOutput = interpreter.evalExpr().toString();
@@ -168,17 +243,21 @@ document.getElementById('run-button').addEventListener('click', function () {
     catch (e) {
         //todo: add syntax highlighting for the position with the error
         buildOutput = e + " at position " + e.position;
+        /*
         raw_input = script;
-        editor.innerHTML = script.slice(0, e.position) + "<span class=\"underline\">" + script.slice(e.position, e.position + 1) + "</span>" + script.slice(e.position + 1, script.length);
+        editor.innerHTML = `${script.slice(0,e.position)}<span class="underline">${script.slice(e.position,e.position+1)}</span>${script.slice(e.position+1,script.length)}`
         isError = true;
+        */
     }
     var out = document.getElementById('output');
     out.textContent = buildOutput;
 });
-document.getElementById('editor').addEventListener('input', function () {
+/*
+document.getElementById('editor').addEventListener('input', function() {//wipe textunderlines after edit
     if (isError) {
-        var editor = document.getElementById('editor');
+        var editor = (<HTMLInputElement>document.getElementById('editor'));
         editor.innerHTML = raw_input;
         isError = false;
     }
 });
+*/

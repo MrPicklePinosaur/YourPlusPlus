@@ -26,14 +26,11 @@ class ScriptError extends Error {
     }
 }
 
-class CalcInterpreter {
+class CalcLexer {
 
     script: string;
     ip: number = -1; //position of character (instruction pointer, prob rename later)
     curChar: string;
-
-    tokens: Token[] = [];
-    curToken: Token;
 
     constructor(script: string) {
         this.script = script;
@@ -97,12 +94,23 @@ class CalcInterpreter {
 
         }
     }
+}
+
+class CalcParser {
+
+    lexer: CalcLexer;
+    tokens: Token[] = [];
+    curToken: Token;
+
+    constructor(lexer: CalcLexer) {
+        this.lexer = lexer;
+    }
 
     // SYNTAX-DIRECTION INTERPRETER CODE
     evalFactor(): number {
 
         var ans = 0;
-        this.curToken = this.nextToken();
+        this.curToken = this.lexer.nextToken();
 
         if (this.curToken.type == TokenTypes.NUMBER) {
             ans = this.curToken.value;
@@ -113,7 +121,7 @@ class CalcInterpreter {
             throw new ScriptError('Syntax Error','Invalid Factor',this.curToken.position);
         }
 
-        this.curToken = this.nextToken();
+        this.curToken = this.lexer.nextToken();
 
         return ans;
     }
@@ -156,7 +164,6 @@ class CalcInterpreter {
             } else if (this.curToken.type == TokenTypes.SUBTRACTION) {
                 ans -= this.evalTerm();
             } 
-
         }
 
         return ans;
@@ -168,7 +175,9 @@ class CalcInterpreter {
             throw new ScriptError('Syntax Error','Invalid syntax at position', token.position);
         }
     }
+}
 
+class CalcInterpreter {
 
     //INTERMEDIATE REPRESENTATION INTERPRETER CODE
     visitTree(tree: AST) {
@@ -186,7 +195,7 @@ class CalcInterpreter {
         } else if (node.type == TokenTypes.NUMBER) {
             return this.visit_Number(node);
         } else {
-            throw new ScriptError("","Unfamiliar node type",node.token.position);
+            throw new ScriptError("","Invalid node type",node.token.position);
         }
     }
 
@@ -242,11 +251,20 @@ class ASTNode {
 var raw_input = '';
 var isError = false;
 document.getElementById('run-button').addEventListener('click',function() {
+    //Build an AST
+    var ast = new AST();
+
+    //var one = new ASTNode();
+
+
+
+
     var editor = (<HTMLInputElement>document.getElementById('editor'));
     var script = editor.innerHTML;
 
     //run code
-    var interpreter = new CalcInterpreter(script);
+    var lexer = new CalcLexer(script);
+    var interpreter = new CalcParser(lexer);
     var buildOutput: string = null;
     
     try {
