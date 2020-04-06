@@ -4,7 +4,6 @@ interface Token {
     position: number;
 }
 
-
 enum TokenTypes {
     NUMBER,
     ADDITION,
@@ -27,25 +26,6 @@ class ScriptError extends Error {
     }
 }
 
-class AST {
-
-    root: ASTNode;
-}
-
-class ASTNode {
-
-    token: Token;
-    left: ASTNode;
-    right: ASTNode;
-
-    constructor(token: Token) {
-        this.token = token;
-    }
-    
-    isLeaf(): Boolean {
-        return (this.left == null && this.right == null) ? true : false;
-    }
-}
 class CalcInterpreter {
 
     script: string;
@@ -118,10 +98,10 @@ class CalcInterpreter {
         }
     }
 
+    // SYNTAX-DIRECTION INTERPRETER CODE
     evalFactor(): number {
 
         var ans = 0;
-
         this.curToken = this.nextToken();
 
         if (this.curToken.type == TokenTypes.NUMBER) {
@@ -157,8 +137,6 @@ class CalcInterpreter {
                 }
                 ans /= divisor;
             } 
-
-
         }
 
         return ans;
@@ -191,6 +169,74 @@ class CalcInterpreter {
         }
     }
 
+
+    //INTERMEDIATE REPRESENTATION INTERPRETER CODE
+    visitTree(tree: AST) {
+        this.visit(tree.root);
+    }
+
+    visit(node: ASTNode): number {
+        if (node == null) {
+            throw new ScriptError("NullException","Node attempting to visit is null",node.token.position);
+        }
+
+        var binop = [TokenTypes.ADDITION,TokenTypes.SUBTRACTION,TokenTypes.MULTIPLICATION,TokenTypes.DIVISION];
+        if (binop.indexOf(node.type) != -1) {
+            return this.visit_BinOp(node);
+        } else if (node.type == TokenTypes.NUMBER) {
+            return this.visit_Number(node);
+        } else {
+            throw new ScriptError("","Unfamiliar node type",node.token.position);
+        }
+    }
+
+    visit_BinOp(node: ASTNode): number {
+        if (node.type == TokenTypes.ADDITION) {
+            return this.visit(node.left) + this.visit(node.right);
+        } else if (node.type == TokenTypes.SUBTRACTION) {
+            return this.visit(node.left) - this.visit(node.right);
+        } else if (node.type == TokenTypes.MULTIPLICATION) {
+            return this.visit(node.left) * this.visit(node.right);
+        } else if (node.type == TokenTypes.DIVISION) {
+            return this.visit(node.left) / this.visit(node.right);
+        } else {
+            throw new ScriptError("","BinOp not found",node.token.position);
+        }
+    }
+
+    visit_Number(node: ASTNode) {
+        var val = node.value;
+        if (val == null) {
+            throw new ScriptError("NullException","Number node value is null",node.token.position);
+        }
+        return val;
+    }
+
+
+}
+
+class AST {
+
+    root: ASTNode;
+}
+
+class ASTNode {
+
+    token: Token;
+    type: TokenTypes;
+    value: any; 
+    left: ASTNode;
+    right: ASTNode;
+
+    constructor(token: Token) {
+        this.token = token;
+        this.type = token.type;
+        this.value = token.value;
+    }
+    
+    isLeaf(): Boolean {
+        return (this.left == null && this.right == null) ? true : false;
+    }
 }
 
 var raw_input = '';
@@ -219,6 +265,7 @@ document.getElementById('run-button').addEventListener('click',function() {
     var out = document.getElementById('output');
     out.textContent = buildOutput; 
 });
+
 
 /*
 document.getElementById('editor').addEventListener('input', function() {//wipe textunderlines after edit
