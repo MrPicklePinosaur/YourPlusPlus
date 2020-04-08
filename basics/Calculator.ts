@@ -48,7 +48,6 @@ class CalcLexer {
         } else {
             this.curChar = this.script.charAt(this.ip).toString();
         }
-
     }
 
     handleInteger(): Token { //handle multi character numbers
@@ -63,7 +62,6 @@ class CalcLexer {
 
         return this.newToken(TokenTypes.NUMBER, parseInt(soFar));
     }
-
     
     nextToken(): Token {
         var token: Token = null;
@@ -107,6 +105,7 @@ class CalcParser {
     }
 
     // SYNTAX-DIRECTION INTERPRETER CODE
+    /*
     evalFactor(): number {
 
         var ans = 0;
@@ -168,6 +167,77 @@ class CalcParser {
 
         return ans;
     }
+    */
+    parseFactor(): ASTNode {
+
+        this.curToken = this.lexer.nextToken();
+        var curNode: ASTNode;
+
+        if (this.curToken.type == TokenTypes.NUMBER) {
+            curNode = new ASTNode(this.curToken,null,null);
+        } else if (this.curToken.type == TokenTypes.OPENBRACKET) {
+            curNode = this.parseExpr();
+            this.comp(this.curToken,TokenTypes.CLOSEBRACKET);
+        } else {
+            throw new ScriptError('Syntax Error','Invalid Factor',this.curToken.position);
+        }
+
+        this.curToken = this.lexer.nextToken();
+
+        return curNode;
+    }
+
+    parseTerm(): ASTNode {
+
+        var curNode = this.parseFactor();
+        var op_token: Token;
+
+        while (true) {
+
+            if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
+                break;
+            }
+
+            if (this.curToken.type == TokenTypes.MULTIPLICATION) {
+                op_token = this.curToken;
+                var right = this.parseFactor();
+            } else if (this.curToken.type == TokenTypes.DIVISION) {
+                op_token = this.curToken;
+                var right = this.parseFactor();
+                if (right.value == 0) {
+                    throw new ScriptError('Math Error','Division by Zero',this.curToken.position);
+                }
+            } 
+            curNode = new ASTNode(op_token,curNode,right);
+        }
+
+        return curNode;
+    }
+
+
+    parseExpr(): ASTNode {
+        var curNode = this.parseTerm();
+        var op_token: Token;
+
+        while (true) {
+            if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
+                break;
+            }
+            
+            if (this.curToken.type == TokenTypes.ADDITION) {
+                op_token = this.curToken;
+                var right = this.parseTerm();
+
+            } else if (this.curToken.type == TokenTypes.SUBTRACTION) {
+                op_token = this.curToken;
+                var right = this.parseTerm();
+            } 
+
+            curNode = new ASTNode(op_token,curNode,right);
+        }
+
+        return curNode;
+    }
 
     comp(token: Token, tokenType: TokenTypes) {
 
@@ -179,6 +249,7 @@ class CalcParser {
 
 class CalcInterpreter {
 
+    
     //INTERMEDIATE REPRESENTATION INTERPRETER CODE
     visitTree(tree: AST) {
         this.visit(tree.root);
@@ -199,7 +270,7 @@ class CalcInterpreter {
         }
     }
 
-    visit_BinOp(node: ASTNode): number {
+    visit_BinOp(node: ASTNode): number { 
         if (node.type == TokenTypes.ADDITION) {
             return this.visit(node.left) + this.visit(node.right);
         } else if (node.type == TokenTypes.SUBTRACTION) {
@@ -215,7 +286,7 @@ class CalcInterpreter {
 
     visit_Number(node: ASTNode) {
         var val = node.value;
-        if (val == null) {
+        if (val == null) {       
             throw new ScriptError("NullException","Number node value is null",node.token.position);
         }
         return val;
@@ -227,6 +298,23 @@ class CalcInterpreter {
 class AST {
 
     root: ASTNode;
+
+    contents() {
+        var result = this.traverse(this.root);
+        result = (result.length > 0) ? result.slice(0,result.length-1) : result;
+        return `<${result}>`;
+    }
+
+    traverse(node: ASTNode): string {
+        var str = '';//`op:${node.type},`;
+        if (node.isLeaf()) {
+            return `${node.value}`;
+        }
+        if (node.left != null) { str += `${this.traverse(node.left)},`; }
+        if (node.right != null) { str += `${this.traverse(node.right)},`; }
+        
+        return str;
+    }
 }
 
 class ASTNode {
@@ -237,10 +325,12 @@ class ASTNode {
     left: ASTNode;
     right: ASTNode;
 
-    constructor(token: Token) {
+    constructor(token: Token, left: ASTNode, right: ASTNode) {
         this.token = token;
         this.type = token.type;
         this.value = token.value;
+        this.left = left;
+        this.right = right;
     }
     
     isLeaf(): Boolean {
@@ -268,7 +358,13 @@ document.getElementById('run-button').addEventListener('click',function() {
     var buildOutput: string = null;
     
     try {
-        buildOutput = interpreter.evalExpr().toString();
+        //buildOutput = interpreter.parseExpr().toString();
+        var root = interpreter.parseExpr();
+        console.log(root);
+        var ast = new AST();
+        ast.root = root;
+        console.log(ast.contents());
+
     } catch(e) {
         //todo: add syntax highlighting for the position with the error
         buildOutput = `${e} at position ${e.position}`

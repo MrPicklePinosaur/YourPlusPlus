@@ -104,55 +104,125 @@ var CalcParser = /** @class */ (function () {
         this.lexer = lexer;
     }
     // SYNTAX-DIRECTION INTERPRETER CODE
-    CalcParser.prototype.evalFactor = function () {
+    /*
+    evalFactor(): number {
+
         var ans = 0;
         this.curToken = this.lexer.nextToken();
+
         if (this.curToken.type == TokenTypes.NUMBER) {
             ans = this.curToken.value;
+        } else if (this.curToken.type == TokenTypes.OPENBRACKET) {
+            ans = this.evalExpr();
+            this.comp(this.curToken,TokenTypes.CLOSEBRACKET);
+        } else {
+            throw new ScriptError('Syntax Error','Invalid Factor',this.curToken.position);
+        }
+
+        this.curToken = this.lexer.nextToken();
+
+        return ans;
+    }
+
+    evalTerm(): number {
+
+        var ans = this.evalFactor();
+
+        while (true) {
+
+            if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
+                break;
+            }
+
+            if (this.curToken.type == TokenTypes.MULTIPLICATION) {
+                ans *= this.evalFactor();
+            } else if (this.curToken.type == TokenTypes.DIVISION) {
+                var divisor = this.evalFactor()
+                if (divisor == 0) {
+                    throw new ScriptError('Math Error','Division by Zero',this.curToken.position);
+                }
+                ans /= divisor;
+            }
+        }
+
+        return ans;
+    }
+
+
+    evalExpr(): number {
+        var ans = this.evalTerm();
+
+        while (true) {
+            if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
+                break;
+            }
+            
+            if (this.curToken.type == TokenTypes.ADDITION) {
+                ans += this.evalTerm();
+            } else if (this.curToken.type == TokenTypes.SUBTRACTION) {
+                ans -= this.evalTerm();
+            }
+        }
+
+        return ans;
+    }
+    */
+    CalcParser.prototype.parseFactor = function () {
+        this.curToken = this.lexer.nextToken();
+        var curNode;
+        if (this.curToken.type == TokenTypes.NUMBER) {
+            curNode = new ASTNode(this.curToken, null, null);
         }
         else if (this.curToken.type == TokenTypes.OPENBRACKET) {
-            ans = this.evalExpr();
+            curNode = this.parseExpr();
             this.comp(this.curToken, TokenTypes.CLOSEBRACKET);
         }
         else {
             throw new ScriptError('Syntax Error', 'Invalid Factor', this.curToken.position);
         }
         this.curToken = this.lexer.nextToken();
-        return ans;
+        return curNode;
     };
-    CalcParser.prototype.evalTerm = function () {
-        var ans = this.evalFactor();
+    CalcParser.prototype.parseTerm = function () {
+        var curNode = this.parseFactor();
+        var op_token;
         while (true) {
             if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
                 break;
             }
             if (this.curToken.type == TokenTypes.MULTIPLICATION) {
-                ans *= this.evalFactor();
+                op_token = this.curToken;
+                var right = this.parseFactor();
             }
             else if (this.curToken.type == TokenTypes.DIVISION) {
-                var divisor = this.evalFactor();
-                if (divisor == 0) {
+                op_token = this.curToken;
+                var right = this.parseFactor();
+                if (right.value == 0) {
                     throw new ScriptError('Math Error', 'Division by Zero', this.curToken.position);
                 }
-                ans /= divisor;
             }
+            curNode = new ASTNode(op_token, curNode, right);
         }
-        return ans;
+        return curNode;
     };
-    CalcParser.prototype.evalExpr = function () {
-        var ans = this.evalTerm();
+    CalcParser.prototype.parseExpr = function () {
+        var curNode = this.parseTerm();
+        var op_token;
         while (true) {
             if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
                 break;
             }
             if (this.curToken.type == TokenTypes.ADDITION) {
-                ans += this.evalTerm();
+                op_token = this.curToken;
+                var right = this.parseTerm();
             }
             else if (this.curToken.type == TokenTypes.SUBTRACTION) {
-                ans -= this.evalTerm();
+                op_token = this.curToken;
+                var right = this.parseTerm();
             }
+            curNode = new ASTNode(op_token, curNode, right);
         }
-        return ans;
+        return curNode;
     };
     CalcParser.prototype.comp = function (token, tokenType) {
         if (token.type != tokenType) {
@@ -212,13 +282,33 @@ var CalcInterpreter = /** @class */ (function () {
 var AST = /** @class */ (function () {
     function AST() {
     }
+    AST.prototype.contents = function () {
+        var result = this.traverse(this.root);
+        result = (result.length > 0) ? result.slice(0, result.length - 1) : result;
+        return "<" + result + ">";
+    };
+    AST.prototype.traverse = function (node) {
+        var str = ''; //`op:${node.type},`;
+        if (node.isLeaf()) {
+            return "" + node.value;
+        }
+        if (node.left != null) {
+            str += this.traverse(node.left) + ",";
+        }
+        if (node.right != null) {
+            str += this.traverse(node.right) + ",";
+        }
+        return str;
+    };
     return AST;
 }());
 var ASTNode = /** @class */ (function () {
-    function ASTNode(token) {
+    function ASTNode(token, left, right) {
         this.token = token;
         this.type = token.type;
         this.value = token.value;
+        this.left = left;
+        this.right = right;
     }
     ASTNode.prototype.isLeaf = function () {
         return (this.left == null && this.right == null) ? true : false;
@@ -238,7 +328,12 @@ document.getElementById('run-button').addEventListener('click', function () {
     var interpreter = new CalcParser(lexer);
     var buildOutput = null;
     try {
-        buildOutput = interpreter.evalExpr().toString();
+        //buildOutput = interpreter.parseExpr().toString();
+        var root = interpreter.parseExpr();
+        console.log(root);
+        var ast = new AST();
+        ast.root = root;
+        console.log(ast.contents());
     }
     catch (e) {
         //todo: add syntax highlighting for the position with the error
