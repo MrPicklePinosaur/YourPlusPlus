@@ -103,70 +103,6 @@ var CalcParser = /** @class */ (function () {
         this.tokens = [];
         this.lexer = lexer;
     }
-    // SYNTAX-DIRECTION INTERPRETER CODE
-    /*
-    evalFactor(): number {
-
-        var ans = 0;
-        this.curToken = this.lexer.nextToken();
-
-        if (this.curToken.type == TokenTypes.NUMBER) {
-            ans = this.curToken.value;
-        } else if (this.curToken.type == TokenTypes.OPENBRACKET) {
-            ans = this.evalExpr();
-            this.comp(this.curToken,TokenTypes.CLOSEBRACKET);
-        } else {
-            throw new ScriptError('Syntax Error','Invalid Factor',this.curToken.position);
-        }
-
-        this.curToken = this.lexer.nextToken();
-
-        return ans;
-    }
-
-    evalTerm(): number {
-
-        var ans = this.evalFactor();
-
-        while (true) {
-
-            if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
-                break;
-            }
-
-            if (this.curToken.type == TokenTypes.MULTIPLICATION) {
-                ans *= this.evalFactor();
-            } else if (this.curToken.type == TokenTypes.DIVISION) {
-                var divisor = this.evalFactor()
-                if (divisor == 0) {
-                    throw new ScriptError('Math Error','Division by Zero',this.curToken.position);
-                }
-                ans /= divisor;
-            }
-        }
-
-        return ans;
-    }
-
-
-    evalExpr(): number {
-        var ans = this.evalTerm();
-
-        while (true) {
-            if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
-                break;
-            }
-            
-            if (this.curToken.type == TokenTypes.ADDITION) {
-                ans += this.evalTerm();
-            } else if (this.curToken.type == TokenTypes.SUBTRACTION) {
-                ans -= this.evalTerm();
-            }
-        }
-
-        return ans;
-    }
-    */
     CalcParser.prototype.parseFactor = function () {
         this.curToken = this.lexer.nextToken();
         var curNode;
@@ -234,9 +170,10 @@ var CalcParser = /** @class */ (function () {
 var CalcInterpreter = /** @class */ (function () {
     function CalcInterpreter() {
     }
+    //TODO: MAKE THIS CLASS STATAIC LATER
     //INTERMEDIATE REPRESENTATION INTERPRETER CODE
     CalcInterpreter.prototype.visitTree = function (tree) {
-        this.visit(tree.root);
+        return this.visit(tree.root);
     };
     CalcInterpreter.prototype.visit = function (node) {
         if (node == null) {
@@ -284,19 +221,20 @@ var AST = /** @class */ (function () {
     }
     AST.prototype.contents = function () {
         var result = this.traverse(this.root);
-        result = (result.length > 0) ? result.slice(0, result.length - 1) : result;
+        //result = (result.length > 0) ? result.slice(0,result.length-1) : result;
         return "<" + result + ">";
     };
     AST.prototype.traverse = function (node) {
         var str = ''; //`op:${node.type},`;
         if (node.isLeaf()) {
+            console.log(node);
             return "" + node.value;
         }
         if (node.left != null) {
-            str += this.traverse(node.left) + ",";
+            str += "(" + this.traverse(node.left) + ")";
         }
         if (node.right != null) {
-            str += this.traverse(node.right) + ",";
+            str += "(" + this.traverse(node.right) + ")";
         }
         return str;
     };
@@ -325,15 +263,16 @@ document.getElementById('run-button').addEventListener('click', function () {
     var script = editor.innerHTML;
     //run code
     var lexer = new CalcLexer(script);
-    var interpreter = new CalcParser(lexer);
+    var parser = new CalcParser(lexer);
+    var interpreter = new CalcInterpreter();
     var buildOutput = null;
     try {
         //buildOutput = interpreter.parseExpr().toString();
-        var root = interpreter.parseExpr();
-        console.log(root);
+        var root = parser.parseExpr();
         var ast = new AST();
         ast.root = root;
         console.log(ast.contents());
+        buildOutput = interpreter.visitTree(ast).toString();
     }
     catch (e) {
         //todo: add syntax highlighting for the position with the error
