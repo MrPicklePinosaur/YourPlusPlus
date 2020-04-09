@@ -22,6 +22,12 @@ var TokenTypes;
     TokenTypes[TokenTypes["OPENBRACKET"] = 6] = "OPENBRACKET";
     TokenTypes[TokenTypes["CLOSEBRACKET"] = 7] = "CLOSEBRACKET";
 })(TokenTypes || (TokenTypes = {}));
+var ParseMode;
+(function (ParseMode) {
+    ParseMode[ParseMode["VALUE"] = 0] = "VALUE";
+    ParseMode[ParseMode["UNOP"] = 1] = "UNOP";
+    ParseMode[ParseMode["BINOP"] = 2] = "BINOP";
+})(ParseMode || (ParseMode = {}));
 var ScriptError = /** @class */ (function (_super) {
     __extends(ScriptError, _super);
     function ScriptError(name, message, position) {
@@ -106,8 +112,21 @@ var CalcParser = /** @class */ (function () {
     CalcParser.prototype.parseFactor = function () {
         this.curToken = this.lexer.nextToken();
         var curNode;
-        if (this.curToken.type == TokenTypes.NUMBER) {
-            curNode = new ASTNode(this.curToken, null, null);
+        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
+            curNode = new ASTNode(this.curToken, ParseMode.UNOP, null, null);
+            this.curToken = this.lexer.nextToken();
+            while (true) {
+                if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
+                    break;
+                }
+                curNode = new ASTNode(this.curToken, ParseMode.UNOP, curNode, null);
+                this.curToken = this.lexer.nextToken();
+            }
+            this.comp(this.curToken, TokenTypes.NUMBER);
+            return curNode;
+        }
+        else if (this.curToken.type == TokenTypes.NUMBER) {
+            curNode = new ASTNode(this.curToken, ParseMode.VALUE, null, null);
         }
         else if (this.curToken.type == TokenTypes.OPENBRACKET) {
             curNode = this.parseExpr();
@@ -137,7 +156,7 @@ var CalcParser = /** @class */ (function () {
                     throw new ScriptError('Math Error', 'Division by Zero', this.curToken.position);
                 }
             }
-            curNode = new ASTNode(op_token, curNode, right);
+            curNode = new ASTNode(op_token, ParseMode.BINOP, curNode, right);
         }
         return curNode;
     };
@@ -156,7 +175,7 @@ var CalcParser = /** @class */ (function () {
                 op_token = this.curToken;
                 var right = this.parseTerm();
             }
-            curNode = new ASTNode(op_token, curNode, right);
+            curNode = new ASTNode(op_token, ParseMode.BINOP, curNode, right);
         }
         return curNode;
     };
@@ -179,12 +198,14 @@ var CalcInterpreter = /** @class */ (function () {
         if (node == null) {
             throw new ScriptError("NullException", "Node attempting to visit is null", node.token.position);
         }
-        var binop = [TokenTypes.ADDITION, TokenTypes.SUBTRACTION, TokenTypes.MULTIPLICATION, TokenTypes.DIVISION];
-        if (binop.indexOf(node.type) != -1) {
+        if (node.parseMode == ParseMode.BINOP) {
             return this.visit_BinOp(node);
         }
-        else if (node.type == TokenTypes.NUMBER) {
-            return this.visit_Number(node);
+        else if (node.parseMode == ParseMode.UNOP) {
+            return this.visit_UnOp(node);
+        }
+        else if (node.parseMode == ParseMode.VALUE) {
+            return this.visit_Value(node);
         }
         else {
             throw new ScriptError("", "Invalid node type", node.token.position);
@@ -207,10 +228,24 @@ var CalcInterpreter = /** @class */ (function () {
             throw new ScriptError("", "BinOp not found", node.token.position);
         }
     };
-    CalcInterpreter.prototype.visit_Number = function (node) {
+    CalcInterpreter.prototype.visit_UnOp = function (node) {
+        if (node.right != null) {
+            throw new ScriptError("", "Invalid node format, UnOp node should not have a right child", node.token.position);
+        }
+        if (node.type == TokenTypes.SUBTRACTION) {
+            return -1 * this.visit(node.left) || -1;
+        }
+        else if (node.type == TokenTypes.ADDITION) {
+            return this.visit(node.left) || 1;
+        }
+        else {
+            throw new ScriptError("", "UnOp not found", node.token.position);
+        }
+    };
+    CalcInterpreter.prototype.visit_Value = function (node) {
         var val = node.value;
         if (val == null) {
-            throw new ScriptError("NullException", "Number node value is null", node.token.position);
+            throw new ScriptError("NullException", "Value node value is null", node.token.position);
         }
         return val;
     };
@@ -241,8 +276,9 @@ var AST = /** @class */ (function () {
     return AST;
 }());
 var ASTNode = /** @class */ (function () {
-    function ASTNode(token, left, right) {
+    function ASTNode(token, parseMode, left, right) {
         this.token = token;
+        this.parseMode = parseMode;
         this.type = token.type;
         this.value = token.value;
         this.left = left;

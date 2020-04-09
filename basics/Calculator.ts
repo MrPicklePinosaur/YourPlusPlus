@@ -12,7 +12,13 @@ enum TokenTypes {
     DIVISION,
     EOF,
     OPENBRACKET,
-    CLOSEBRACKET
+    CLOSEBRACKET,
+}
+
+enum ParseMode {
+    VALUE,
+    UNOP,
+    BINOP
 }
 
 class ScriptError extends Error {
@@ -109,8 +115,24 @@ class CalcParser {
         this.curToken = this.lexer.nextToken();
         var curNode: ASTNode;
 
-        if (this.curToken.type == TokenTypes.NUMBER) {
-            curNode = new ASTNode(this.curToken,null,null);
+        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
+ 
+            curNode = new ASTNode(this.curToken,ParseMode.UNOP,null,null);
+            this.curToken = this.lexer.nextToken();
+
+            while (true) {
+                if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
+                    break;
+                }
+                curNode = new ASTNode(this.curToken,ParseMode.UNOP,curNode,null);
+                this.curToken = this.lexer.nextToken();
+            }
+
+            this.comp(this.curToken,TokenTypes.NUMBER);
+            return curNode;
+            
+        } else if (this.curToken.type == TokenTypes.NUMBER) {
+            curNode = new ASTNode(this.curToken,ParseMode.VALUE,null,null);
         } else if (this.curToken.type == TokenTypes.OPENBRACKET) {
             curNode = this.parseExpr();
             this.comp(this.curToken,TokenTypes.CLOSEBRACKET);
@@ -144,7 +166,7 @@ class CalcParser {
                     throw new ScriptError('Math Error','Division by Zero',this.curToken.position);
                 }
             } 
-            curNode = new ASTNode(op_token,curNode,right);
+            curNode = new ASTNode(op_token,ParseMode.BINOP,curNode,right);
         }
 
         return curNode;
@@ -170,7 +192,7 @@ class CalcParser {
             } 
 
             
-            curNode = new ASTNode(op_token,curNode,right);
+            curNode = new ASTNode(op_token,ParseMode.BINOP,curNode,right);
         }
 
         return curNode;
@@ -197,11 +219,12 @@ class CalcInterpreter {
             throw new ScriptError("NullException","Node attempting to visit is null",node.token.position);
         }
 
-        var binop = [TokenTypes.ADDITION,TokenTypes.SUBTRACTION,TokenTypes.MULTIPLICATION,TokenTypes.DIVISION];
-        if (binop.indexOf(node.type) != -1) {
+        if (node.parseMode == ParseMode.BINOP) {
             return this.visit_BinOp(node);
-        } else if (node.type == TokenTypes.NUMBER) {
-            return this.visit_Number(node);
+        } else if (node.parseMode == ParseMode.UNOP) {
+            return this.visit_UnOp(node);
+        } else if (node.parseMode == ParseMode.VALUE) {
+            return this.visit_Value(node);
         } else {
             throw new ScriptError("","Invalid node type",node.token.position);
         }
@@ -221,10 +244,25 @@ class CalcInterpreter {
         }
     }
 
-    visit_Number(node: ASTNode) {
+    visit_UnOp(node: ASTNode): number {
+
+        if (node.right != null) { 
+            throw new ScriptError("","Invalid node format, UnOp node should not have a right child",node.token.position); 
+        }
+
+        if (node.type == TokenTypes.SUBTRACTION) {
+            return -1*this.visit(node.left) || -1;
+        } else if (node.type == TokenTypes.ADDITION) {
+            return this.visit(node.left) || 1;
+        } else {
+            throw new ScriptError("","UnOp not found",node.token.position);
+        }
+    }
+
+    visit_Value(node: ASTNode) {
         var val = node.value;
         if (val == null) {       
-            throw new ScriptError("NullException","Number node value is null",node.token.position);
+            throw new ScriptError("NullException","Value node value is null",node.token.position);
         }
         return val;
     }
@@ -258,13 +296,15 @@ class AST {
 class ASTNode {
 
     token: Token;
+    parseMode: ParseMode;
     type: TokenTypes;
     value: any; 
     left: ASTNode;
     right: ASTNode;
 
-    constructor(token: Token, left: ASTNode, right: ASTNode) {
+    constructor(token: Token, parseMode: ParseMode, left: ASTNode, right: ASTNode) {
         this.token = token;
+        this.parseMode = parseMode;
         this.type = token.type;
         this.value = token.value;
         this.left = left;
