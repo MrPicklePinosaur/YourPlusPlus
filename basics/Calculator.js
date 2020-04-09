@@ -122,7 +122,10 @@ var CalcParser = /** @class */ (function () {
     CalcParser.prototype.parseFactor = function () {
         this.curToken = this.lexer.nextToken();
         var curNode;
-        if (this.curToken.type == TokenTypes.NUMBER) {
+        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
+            return new ASTNode(this.curToken, ParseMode.UNOP, this.parseFactor(), null);
+        }
+        else if (this.curToken.type == TokenTypes.NUMBER) {
             curNode = new ASTNode(this.curToken, ParseMode.VALUE, null, null);
         }
         else if (this.curToken.type == TokenTypes.OPENBRACKET) {
@@ -144,12 +147,6 @@ var CalcParser = /** @class */ (function () {
             }
             curNode = new ASTNode(this.curToken, ParseMode.BINOP, curNode, this.parseFactor());
         }
-        /*
-        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
- 
-            curNode = new ASTNode(this.curToken,ParseMode.UNOP,this.parseExpo(),null);
-        }
-        */
         return curNode;
     };
     CalcParser.prototype.parseTerm = function () {

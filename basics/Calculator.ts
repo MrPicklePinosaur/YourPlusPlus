@@ -125,7 +125,9 @@ class CalcParser {
         this.curToken = this.lexer.nextToken();
         var curNode: ASTNode;
 
-        if (this.curToken.type == TokenTypes.NUMBER) {
+        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
+            return new ASTNode(this.curToken,ParseMode.UNOP,this.parseFactor(),null);
+        } else if (this.curToken.type == TokenTypes.NUMBER) {
             curNode = new ASTNode(this.curToken,ParseMode.VALUE,null,null);
         } else if (this.curToken.type == TokenTypes.OPENBRACKET) {
             curNode = this.parseExpr();
@@ -148,14 +150,10 @@ class CalcParser {
 
             curNode = new ASTNode(this.curToken,ParseMode.BINOP,curNode,this.parseFactor());
         }
-        /*
-        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
- 
-            curNode = new ASTNode(this.curToken,ParseMode.UNOP,this.parseExpo(),null);
-        }
-        */
+
         return curNode;
     }
+
 
     parseTerm(): ASTNode {
 
