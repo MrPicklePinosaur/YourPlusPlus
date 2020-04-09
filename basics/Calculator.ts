@@ -10,6 +10,7 @@ enum TokenTypes {
     SUBTRACTION,
     MULTIPLICATION,
     DIVISION,
+    SUPERSCRIPT,
     EOF,
     OPENBRACKET,
     CLOSEBRACKET,
@@ -89,6 +90,8 @@ class CalcLexer {
                 token = this.newToken(TokenTypes.OPENBRACKET, null);
             } else if (this.curChar == ')') {
                 token = this.newToken(TokenTypes.CLOSEBRACKET, null);
+            } else if (this.curChar == '^') {
+                token = this.newToken(TokenTypes.SUPERSCRIPT, null);
             }
 
             this.nextChar();
@@ -110,16 +113,19 @@ class CalcParser {
         this.lexer = lexer;
     }
 
+    /*
+    parseExpr - addition and subtraction
+    parseTerm - multiplication and division and unary operators
+    parseExpo - exponenets
+    parseFactor - brackets 
+    */
+
     parseFactor(): ASTNode {
 
         this.curToken = this.lexer.nextToken();
         var curNode: ASTNode;
 
-        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
- 
-            return new ASTNode(this.curToken,ParseMode.UNOP,this.parseFactor(),null);
-            
-        } else if (this.curToken.type == TokenTypes.NUMBER) {
+        if (this.curToken.type == TokenTypes.NUMBER) {
             curNode = new ASTNode(this.curToken,ParseMode.VALUE,null,null);
         } else if (this.curToken.type == TokenTypes.OPENBRACKET) {
             curNode = this.parseExpr();
@@ -133,9 +139,27 @@ class CalcParser {
         return curNode;
     }
 
+    parseExpo(): ASTNode {
+        var curNode = this.parseFactor();
+        var op_token: Token;
+
+        while(true) {
+            if (this.curToken.type != TokenTypes.SUPERSCRIPT) { break; }
+
+            curNode = new ASTNode(this.curToken,ParseMode.BINOP,curNode,this.parseFactor());
+        }
+        /*
+        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
+ 
+            curNode = new ASTNode(this.curToken,ParseMode.UNOP,this.parseExpo(),null);
+        }
+        */
+        return curNode;
+    }
+
     parseTerm(): ASTNode {
 
-        var curNode = this.parseFactor();
+        var curNode = this.parseExpo();
         var op_token: Token;
 
         while (true) {
@@ -146,10 +170,10 @@ class CalcParser {
 
             if (this.curToken.type == TokenTypes.MULTIPLICATION) {
                 op_token = this.curToken;
-                var right = this.parseFactor();
+                var right = this.parseExpo();
             } else if (this.curToken.type == TokenTypes.DIVISION) {
                 op_token = this.curToken;
-                var right = this.parseFactor();
+                var right = this.parseExpo();
                 if (right.value == 0) {
                     throw new ScriptError('Math Error','Division by Zero',this.curToken.position);
                 }
@@ -227,6 +251,8 @@ class CalcInterpreter {
             return this.visit(node.left) * this.visit(node.right);
         } else if (node.type == TokenTypes.DIVISION) {
             return this.visit(node.left) / this.visit(node.right);
+        } else if (node.type == TokenTypes.SUPERSCRIPT) {
+            return Math.pow(this.visit(node.left),this.visit(node.right));
         } else {
             throw new ScriptError("","BinOp not found",node.token.position);
         }

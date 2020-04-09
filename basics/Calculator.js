@@ -18,9 +18,10 @@ var TokenTypes;
     TokenTypes[TokenTypes["SUBTRACTION"] = 2] = "SUBTRACTION";
     TokenTypes[TokenTypes["MULTIPLICATION"] = 3] = "MULTIPLICATION";
     TokenTypes[TokenTypes["DIVISION"] = 4] = "DIVISION";
-    TokenTypes[TokenTypes["EOF"] = 5] = "EOF";
-    TokenTypes[TokenTypes["OPENBRACKET"] = 6] = "OPENBRACKET";
-    TokenTypes[TokenTypes["CLOSEBRACKET"] = 7] = "CLOSEBRACKET";
+    TokenTypes[TokenTypes["SUPERSCRIPT"] = 5] = "SUPERSCRIPT";
+    TokenTypes[TokenTypes["EOF"] = 6] = "EOF";
+    TokenTypes[TokenTypes["OPENBRACKET"] = 7] = "OPENBRACKET";
+    TokenTypes[TokenTypes["CLOSEBRACKET"] = 8] = "CLOSEBRACKET";
 })(TokenTypes || (TokenTypes = {}));
 var ParseMode;
 (function (ParseMode) {
@@ -96,6 +97,9 @@ var CalcLexer = /** @class */ (function () {
             else if (this.curChar == ')') {
                 token = this.newToken(TokenTypes.CLOSEBRACKET, null);
             }
+            else if (this.curChar == '^') {
+                token = this.newToken(TokenTypes.SUPERSCRIPT, null);
+            }
             this.nextChar();
             if (token != null) {
                 return token;
@@ -109,13 +113,16 @@ var CalcParser = /** @class */ (function () {
         this.tokens = [];
         this.lexer = lexer;
     }
+    /*
+    parseExpr - addition and subtraction
+    parseTerm - multiplication and division and unary operators
+    parseExpo - exponenets
+    parseFactor - brackets
+    */
     CalcParser.prototype.parseFactor = function () {
         this.curToken = this.lexer.nextToken();
         var curNode;
-        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
-            return new ASTNode(this.curToken, ParseMode.UNOP, this.parseFactor(), null);
-        }
-        else if (this.curToken.type == TokenTypes.NUMBER) {
+        if (this.curToken.type == TokenTypes.NUMBER) {
             curNode = new ASTNode(this.curToken, ParseMode.VALUE, null, null);
         }
         else if (this.curToken.type == TokenTypes.OPENBRACKET) {
@@ -128,8 +135,25 @@ var CalcParser = /** @class */ (function () {
         this.curToken = this.lexer.nextToken();
         return curNode;
     };
-    CalcParser.prototype.parseTerm = function () {
+    CalcParser.prototype.parseExpo = function () {
         var curNode = this.parseFactor();
+        var op_token;
+        while (true) {
+            if (this.curToken.type != TokenTypes.SUPERSCRIPT) {
+                break;
+            }
+            curNode = new ASTNode(this.curToken, ParseMode.BINOP, curNode, this.parseFactor());
+        }
+        /*
+        if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
+ 
+            curNode = new ASTNode(this.curToken,ParseMode.UNOP,this.parseExpo(),null);
+        }
+        */
+        return curNode;
+    };
+    CalcParser.prototype.parseTerm = function () {
+        var curNode = this.parseExpo();
         var op_token;
         while (true) {
             if (this.curToken.type != TokenTypes.MULTIPLICATION && this.curToken.type != TokenTypes.DIVISION) {
@@ -137,11 +161,11 @@ var CalcParser = /** @class */ (function () {
             }
             if (this.curToken.type == TokenTypes.MULTIPLICATION) {
                 op_token = this.curToken;
-                var right = this.parseFactor();
+                var right = this.parseExpo();
             }
             else if (this.curToken.type == TokenTypes.DIVISION) {
                 op_token = this.curToken;
-                var right = this.parseFactor();
+                var right = this.parseExpo();
                 if (right.value == 0) {
                     throw new ScriptError('Math Error', 'Division by Zero', this.curToken.position);
                 }
@@ -213,6 +237,9 @@ var CalcInterpreter = /** @class */ (function () {
         }
         else if (node.type == TokenTypes.DIVISION) {
             return this.visit(node.left) / this.visit(node.right);
+        }
+        else if (node.type == TokenTypes.SUPERSCRIPT) {
+            return Math.pow(this.visit(node.left), this.visit(node.right));
         }
         else {
             throw new ScriptError("", "BinOp not found", node.token.position);
