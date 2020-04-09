@@ -113,17 +113,7 @@ var CalcParser = /** @class */ (function () {
         this.curToken = this.lexer.nextToken();
         var curNode;
         if (this.curToken.type == TokenTypes.ADDITION || this.curToken.type == TokenTypes.SUBTRACTION) {
-            curNode = new ASTNode(this.curToken, ParseMode.UNOP, null, null);
-            this.curToken = this.lexer.nextToken();
-            while (true) {
-                if (this.curToken.type != TokenTypes.ADDITION && this.curToken.type != TokenTypes.SUBTRACTION) {
-                    break;
-                }
-                curNode = new ASTNode(this.curToken, ParseMode.UNOP, curNode, null);
-                this.curToken = this.lexer.nextToken();
-            }
-            this.comp(this.curToken, TokenTypes.NUMBER);
-            return curNode;
+            return new ASTNode(this.curToken, ParseMode.UNOP, this.parseFactor(), null);
         }
         else if (this.curToken.type == TokenTypes.NUMBER) {
             curNode = new ASTNode(this.curToken, ParseMode.VALUE, null, null);
