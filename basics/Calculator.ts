@@ -22,6 +22,16 @@ enum ParseMode {
     BINOP
 }
 
+
+const semantics: Map<TokenTypes,string> = new Map([
+    [TokenTypes.NUMBER, '\d'],
+    [TokenTypes.ADDITION, '+'],
+    [TokenTypes.SUBTRACTION, '-'],
+    [TokenTypes.MULTIPLICATION, '*'],
+]);
+
+
+
 class ScriptError extends Error {
     position: number;
 
@@ -57,6 +67,16 @@ class CalcLexer {
         }
     }
 
+    peekChar(): string { //kinda like nextChar() but doesnt actually consume a character
+        var peek_pos  = this.ip+1;
+        if (peek_pos > this.script.length-1) {
+            return null;
+        } else {
+            return this.script.charAt(peek_pos).toString();
+        }
+    }
+
+    //todo: handle floats
     handleInteger(): Token { //handle multi character numbers
         var soFar: string = '';
 
@@ -69,6 +89,19 @@ class CalcLexer {
 
         return this.newToken(TokenTypes.NUMBER, parseInt(soFar));
     }
+
+    newNextToken(): Token { //better version of next token
+        var token: Token = null;
+
+        var possible_tokens: TokenTypes[] = []; //only works for tokens without locational rules
+        while (true) {
+
+
+        }
+
+        return token;
+    }
+
     
     nextToken(): Token {
         var token: Token = null;

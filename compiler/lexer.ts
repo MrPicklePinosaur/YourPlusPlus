@@ -10,7 +10,7 @@ class Lexer {
     static tokenize(script: string): string[] {
         script += ' ';
 
-        var tokened: string[] = [];   
+        var tokenized: string[] = [];   
         var curString = '';
         var capture_mode = null;
 
@@ -31,11 +31,11 @@ class Lexer {
             if ((char == ' ' || char == ';') && capture_mode == null) { //default tokenizer (if we are in capture mode, we dont wanna tokenize by whitespace, etc strings)
                 
                 if (curString.length > 0) { //push current string if its not empty
-                    tokened.push(curString);
+                    tokenized.push(curString);
                 }
 
                 if (char == ';') { //push new line character
-                    tokened.push(char);
+                    tokenized.push(char);
                 }
                 
                 curString = '';
@@ -45,7 +45,7 @@ class Lexer {
             curString += char;
         }
 
-        return tokened;
+        return tokenized;
    }
    
 }
