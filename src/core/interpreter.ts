@@ -1,4 +1,4 @@
-import { Token, TokenType } from 'core/types/token.types';
+import { Token, TokenType, TokenMatch } from 'core/types/token.types';
 
 export class Interpreter {
 
@@ -6,44 +6,29 @@ export class Interpreter {
     private cur_token: Token;
     private source: string;
 
+    get cur_char(): string {
+        return this.source[this.cur_pos];
+    }
+
     constructor(source: string) {
         this.source = source;
         this.cur_token = this.nextToken();
     }
 
+    
     advancePos() {
         this.cur_pos += 1;
     } 
 
     nextToken(): Token {
 
-        //if we reach end of file
-        if (this.cur_pos == this.source.length) {
-            return {
-                type: TokenType.EOF,
-                value: ''
-            }
+        for (const tm of this.tokenMatcher) {
+            if (tm.condition()) return tm.resolve(); 
         }
 
-        const cur_char: string = this.source[this.cur_pos];
-
-        if (cur_char === '+') {
-            this.advancePos();
-            return {
-                type: TokenType.ADDITION,
-                value: cur_char
-            }
-        }
-
-        if (/\d/.test(cur_char)) {
-            this.advancePos();
-            return {
-                type: TokenType.INTEGER,
-                value: cur_char
-            }
-        }
-
+        //if nothing matches
         throw new Error(`Invalid token at position ${this.cur_pos}`);
+
     }
 
     //takes in an expected token type and checks to see if it matches the current token
@@ -72,5 +57,65 @@ export class Interpreter {
         return parseInt(left.value) + parseInt(right.value);
 
     }
+
+    //Describes conditions for a token to match, note
+    private tokenMatcher: TokenMatch[] = [
+
+        {
+            type: TokenType.EOF,
+            condition: () => this.cur_pos >= this.source.length,
+            resolve: () => ({ type: TokenType.EOF, value: '' })
+        },
+
+        {
+            type: TokenType.ADDITION,
+            condition: () => this.cur_char === '+',
+            resolve: () => {
+                this.advancePos();
+                return { type: TokenType.ADDITION, value: '' }
+            }
+        },
+
+        {
+            type: TokenType.SUBTRACTION,
+            condition: () => this.cur_char === '-',
+            resolve: () => {
+                this.advancePos();
+                return { type: TokenType.SUBTRACTION, value: '' }
+            }
+        },
+        
+        {
+            type: TokenType.INTEGER,
+            condition: () => /\d/.test(this.cur_char),
+            resolve: () => {
+                let integer = '';
+
+                while (/\d/.test(this.cur_char)) {
+                    integer += this.cur_char;
+                    this.advancePos();
+                }
+
+                return { type: TokenType.INTEGER, value: integer }
+            }
+        },
+
+        {
+            type: TokenType.WHITESPACE,
+            condition: () => /\s/.test(this.cur_char),
+            resolve: () => {
+                let whitespace = '';
+
+                while (/\s/.test(this.cur_char)) {
+                    whitespace += this.cur_char;
+                    this.advancePos();
+                }
+
+                return { type: TokenType.WHITESPACE, value: whitespace }
+            }
+        },
+
+    ]
+
 
 }
