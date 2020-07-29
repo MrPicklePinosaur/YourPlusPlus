@@ -11,8 +11,3 @@ export type Token = {
     value: string 
 }
 
-export interface TokenMatch {
-    type: TokenType,
-    condition: (() => boolean),
-    resolve: (() => Token) 
-} 

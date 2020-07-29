@@ -5,7 +5,7 @@ export const runSource = (source: string): Promise<string> => {
 
         try {
             const intp = new Interpreter(source);
-            const result = intp.evaluateAddition();
+            const result = intp.evaluate();
 
             resolve(`${result}`);
 

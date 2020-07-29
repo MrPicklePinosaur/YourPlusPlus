@@ -1,4 +1,5 @@
-import { Token, TokenType, TokenMatch } from 'core/types/token.types';
+import { Token, TokenType } from 'core/types/token.types';
+import { threadId } from 'worker_threads';
 
 export class Interpreter {
 
@@ -14,7 +15,6 @@ export class Interpreter {
         this.source = source;
         this.cur_token = this.nextToken();
     }
-
     
     advancePos() {
         this.cur_pos += 1;
@@ -43,32 +43,36 @@ export class Interpreter {
 
     }
 
-    evaluateAddition(): number {
+    evaluate(): number {
 
         const left = this.cur_token;
-        this.eatToken(TokenType.INTEGER);
+        this.eatToken(TokenType.INTEGER); //problem: we cannot have whitespace as before first int
 
-        const operator = this.cur_token;
-        this.eatToken(TokenType.ADDITION);
+        let result = parseInt(left.value);
 
-        const right = this.cur_token;
-        this.eatToken(TokenType.INTEGER);
+        while (this.cur_token.type !== TokenType.EOF) {
+            
+            this.eatToken(TokenType.ADDITION);
 
-        return parseInt(left.value) + parseInt(right.value);
+            const right = this.cur_token;
+            this.eatToken(TokenType.INTEGER);
+            
+            result += parseInt(right.value);
+        }
 
+        return result;
     }
 
     //Describes conditions for a token to match, note
-    private tokenMatcher: TokenMatch[] = [
+    //current problems: if two tokens have the same / overlapping conditions, then one may never be called
+    private tokenMatcher: { condition: () => boolean, resolve: () => Token }[] = [
 
         {
-            type: TokenType.EOF,
             condition: () => this.cur_pos >= this.source.length,
             resolve: () => ({ type: TokenType.EOF, value: '' })
         },
 
         {
-            type: TokenType.ADDITION,
             condition: () => this.cur_char === '+',
             resolve: () => {
                 this.advancePos();
@@ -77,7 +81,6 @@ export class Interpreter {
         },
 
         {
-            type: TokenType.SUBTRACTION,
             condition: () => this.cur_char === '-',
             resolve: () => {
                 this.advancePos();
@@ -86,7 +89,6 @@ export class Interpreter {
         },
         
         {
-            type: TokenType.INTEGER,
             condition: () => /\d/.test(this.cur_char),
             resolve: () => {
                 let integer = '';
@@ -101,7 +103,6 @@ export class Interpreter {
         },
 
         {
-            type: TokenType.WHITESPACE,
             condition: () => /\s/.test(this.cur_char),
             resolve: () => {
                 let whitespace = '';
