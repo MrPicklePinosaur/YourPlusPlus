@@ -43,7 +43,7 @@ export class Interpreter {
             }
         }
 
-        throw(`Invalid token at position ${this.cur_pos}`);
+        throw new Error(`Invalid token at position ${this.cur_pos}`);
     }
 
     //takes in an expected token type and checks to see if it matches the current token
@@ -53,7 +53,7 @@ export class Interpreter {
         if (this.cur_token.type === expectedType) {
             this.cur_token = this.nextToken();
         } else {
-            throw(`Invalid syntax at position ${this.cur_pos}`);
+            throw new Error(`Invalid syntax at position ${this.cur_pos}`);
         }
 
     }
