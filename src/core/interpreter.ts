@@ -43,7 +43,7 @@ export class Interpreter {
 
     }
 
-    evaluate(): number {
+    evaluateExpr(): number {
 
         let result = this.evaluateTerm(); //problem: we cannot have whitespace as before first int
 
@@ -65,30 +65,39 @@ export class Interpreter {
 
     evaluateTerm(): number {
 
-        const left = this.cur_token;
-        this.eatToken(TokenType.INTEGER); 
-        let result = parseInt(left.value);
+        let result = this.evaluateFactor();
 
         while ([TokenType.MULTIPLICATION,TokenType.DIVISION].includes(this.cur_token.type)) {
             
             if (this.cur_token.type === TokenType.MULTIPLICATION) {
                 this.eatToken(TokenType.MULTIPLICATION);
-
-                const right = this.cur_token;
-                this.eatToken(TokenType.INTEGER);
-                result *= parseInt(right.value);
+                result *= this.evaluateFactor();
 
             } else if (this.cur_token.type === TokenType.DIVISION) {
                 this.eatToken(TokenType.DIVISION);
-
-                const right = this.cur_token;
-                this.eatToken(TokenType.INTEGER);
-                result /= parseInt(right.value);
+                result /= this.evaluateFactor();
             }
             
         }
 
         return result;
+    }
+
+    evaluateFactor(): number {
+
+        if (this.cur_token.type === TokenType.INTEGER) {
+            const token = this.cur_token;
+            this.eatToken(TokenType.INTEGER);
+            return parseInt(token.value);
+
+        } else {
+            this.eatToken(TokenType.LEFT_BRACKET);
+            const result = this.evaluateExpr();
+            this.eatToken(TokenType.RIGHT_BRACKET);
+            return result; 
+
+        }
+
     }
 
     //Describes conditions for a token to match, note
@@ -129,6 +138,22 @@ export class Interpreter {
             resolve: () => {
                 this.advancePos();
                 return { type: TokenType.DIVISION, value: '' }
+            }
+        },
+
+        {
+            condition: () => this.cur_char === '(',
+            resolve: () => {
+                this.advancePos();
+                return { type: TokenType.LEFT_BRACKET, value: '' }
+            }
+        },
+
+        {
+            condition: () => this.cur_char === ')',
+            resolve: () => {
+                this.advancePos();
+                return { type: TokenType.RIGHT_BRACKET, value: '' }
             }
         },
         

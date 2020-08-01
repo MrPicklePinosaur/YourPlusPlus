@@ -4,6 +4,8 @@ export enum TokenType {
     SUBTRACTION,
     MULTIPLICATION,
     DIVISION,
+    LEFT_BRACKET,
+    RIGHT_BRACKET,
     WHITESPACE,
     EOF,
 }
