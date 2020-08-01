@@ -45,19 +45,47 @@ export class Interpreter {
 
     evaluate(): number {
 
-        const left = this.cur_token;
-        this.eatToken(TokenType.INTEGER); //problem: we cannot have whitespace as before first int
+        let result = this.evaluateTerm(); //problem: we cannot have whitespace as before first int
 
+        while ([TokenType.ADDITION,TokenType.SUBTRACTION].includes(this.cur_token.type)) {
+            
+            if (this.cur_token.type === TokenType.ADDITION) {
+                this.eatToken(TokenType.ADDITION);
+                result += this.evaluateTerm();
+
+            } else if (this.cur_token.type === TokenType.SUBTRACTION) {
+                this.eatToken(TokenType.SUBTRACTION);
+                result -= this.evaluateTerm();
+            }
+            
+        }
+
+        return result;
+    }
+
+    evaluateTerm(): number {
+
+        const left = this.cur_token;
+        this.eatToken(TokenType.INTEGER); 
         let result = parseInt(left.value);
 
-        while (this.cur_token.type !== TokenType.EOF) {
+        while ([TokenType.MULTIPLICATION,TokenType.DIVISION].includes(this.cur_token.type)) {
             
-            this.eatToken(TokenType.ADDITION);
+            if (this.cur_token.type === TokenType.MULTIPLICATION) {
+                this.eatToken(TokenType.MULTIPLICATION);
 
-            const right = this.cur_token;
-            this.eatToken(TokenType.INTEGER);
+                const right = this.cur_token;
+                this.eatToken(TokenType.INTEGER);
+                result *= parseInt(right.value);
+
+            } else if (this.cur_token.type === TokenType.DIVISION) {
+                this.eatToken(TokenType.DIVISION);
+
+                const right = this.cur_token;
+                this.eatToken(TokenType.INTEGER);
+                result /= parseInt(right.value);
+            }
             
-            result += parseInt(right.value);
         }
 
         return result;
@@ -85,6 +113,22 @@ export class Interpreter {
             resolve: () => {
                 this.advancePos();
                 return { type: TokenType.SUBTRACTION, value: '' }
+            }
+        },
+
+        {
+            condition: () => this.cur_char === '*',
+            resolve: () => {
+                this.advancePos();
+                return { type: TokenType.MULTIPLICATION, value: '' }
+            }
+        },
+
+        {
+            condition: () => this.cur_char === '/',
+            resolve: () => {
+                this.advancePos();
+                return { type: TokenType.DIVISION, value: '' }
             }
         },
         
