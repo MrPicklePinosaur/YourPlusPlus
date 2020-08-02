@@ -1,5 +1,5 @@
 import { Token, TokenType } from 'core/types/token.types';
-import { threadId } from 'worker_threads';
+import { ASTNode } from 'core/types/ast.types';
 
 export class Interpreter {
 
@@ -43,58 +43,60 @@ export class Interpreter {
 
     }
 
-    evaluateExpr(): number {
+    evaluateExpr(): ASTNode {
 
-        let result = this.evaluateTerm(); //problem: we cannot have whitespace as before first int
+        let left_node = this.evaluateTerm(); //problem: we cannot have whitespace as before first int
 
         while ([TokenType.ADDITION,TokenType.SUBTRACTION].includes(this.cur_token.type)) {
-            
+           
+            const op_token = this.cur_token;
             if (this.cur_token.type === TokenType.ADDITION) {
                 this.eatToken(TokenType.ADDITION);
-                result += this.evaluateTerm();
 
             } else if (this.cur_token.type === TokenType.SUBTRACTION) {
                 this.eatToken(TokenType.SUBTRACTION);
-                result -= this.evaluateTerm();
             }
+
+            left_node = { ...op_token, left: left_node, right: this.evaluateTerm() }
             
         }
 
-        return result;
+        return left_node;
     }
 
-    evaluateTerm(): number {
+    evaluateTerm(): ASTNode {
 
-        let result = this.evaluateFactor();
+        let left_node = this.evaluateFactor();
 
         while ([TokenType.MULTIPLICATION,TokenType.DIVISION].includes(this.cur_token.type)) {
             
+            const op_token = this.cur_token;
             if (this.cur_token.type === TokenType.MULTIPLICATION) {
                 this.eatToken(TokenType.MULTIPLICATION);
-                result *= this.evaluateFactor();
 
             } else if (this.cur_token.type === TokenType.DIVISION) {
                 this.eatToken(TokenType.DIVISION);
-                result /= this.evaluateFactor();
             }
+
+            left_node = { ...op_token, left: left_node, right: this.evaluateFactor() }
             
         }
 
-        return result;
+        return left_node;
     }
 
-    evaluateFactor(): number {
+    evaluateFactor(): ASTNode {
 
         if (this.cur_token.type === TokenType.INTEGER) {
             const token = this.cur_token;
             this.eatToken(TokenType.INTEGER);
-            return parseInt(token.value);
+            return { ...token, left: null, right: null }
 
         } else {
             this.eatToken(TokenType.LEFT_BRACKET);
-            const result = this.evaluateExpr();
+            const node = this.evaluateExpr();
             this.eatToken(TokenType.RIGHT_BRACKET);
-            return result; 
+            return node; 
 
         }
 

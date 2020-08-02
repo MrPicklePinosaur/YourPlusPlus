@@ -7,6 +7,7 @@ export const runSource = (source: string): Promise<string> => {
             const intp = new Interpreter(source);
             const result = intp.evaluateExpr();
 
+            console.log(result)
             resolve(`${result}`);
 
         } catch(err) {
