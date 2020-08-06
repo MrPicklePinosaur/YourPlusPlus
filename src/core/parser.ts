@@ -91,6 +91,16 @@ export class Parser {
             const token = this.cur_token;
             this.eatToken(TokenType.INTEGER);
             return { ...token }
+        
+        } else if (this.cur_token.type === TokenType.ADDITION) {
+            const token = this.cur_token;
+            this.eatToken(TokenType.ADDITION);
+            return { ...token, child: this.evaluateFactor() }
+
+        } else if (this.cur_token.type === TokenType.SUBTRACTION) {
+            const token = this.cur_token;
+            this.eatToken(TokenType.SUBTRACTION);
+            return { ...token, child: this.evaluateFactor() }
 
         } else {
             this.eatToken(TokenType.LEFT_BRACKET);

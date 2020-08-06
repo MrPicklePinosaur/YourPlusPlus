@@ -1,18 +1,19 @@
-import { ASTNode, LeafASTNode, BinopASTNode, isBinopNode } from 'core/types/ast.types';
+import { ASTNode, LeafASTNode, BinopASTNode, isBinopNode, isUnopNode, UnopASTNode } from 'core/types/ast.types';
 import { TokenType } from 'core/types/token.types';
 
 export const visit = (node: ASTNode): number => {
 
     if (isBinopNode(node)) {
-        return visitBinOp(node);        
-        
+        return visitBinop(node);        
+    } else if (isUnopNode(node)) {
+        return visitUnop(node);
     } else {
         return visitLeaf(node);
     }
 }
 
 //handles binary operators
-export const visitBinOp = (node: BinopASTNode): number => {
+export const visitBinop = (node: BinopASTNode): number => {
 
     switch(node.type) {
         case TokenType.ADDITION:
@@ -29,6 +30,18 @@ export const visitBinOp = (node: BinopASTNode): number => {
             throw new Error(`Invalid node type: ${node.type}`);
     }
 
+}
+
+export const visitUnop = (node: UnopASTNode): number => {
+    
+    switch(node.type) {
+        case TokenType.ADDITION:
+            return visit(node.child);
+        case TokenType.SUBTRACTION:
+            return -visit(node.child);
+        default:
+            throw new Error(`Invalid node type: ${node.type}`);
+    }
 }
 
 export const visitLeaf = (node: LeafASTNode): number => {
