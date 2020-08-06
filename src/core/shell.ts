@@ -1,13 +1,14 @@
-import { Interpreter } from 'core/interpreter';
+import { Parser } from 'core/parser';
+import { visit } from 'core/interpreter';
 
 export const runSource = (source: string): Promise<string> => {
     return new Promise((resolve, reject) => {
 
         try {
-            const intp = new Interpreter(source);
-            const result = intp.evaluateExpr();
+            const intp = new Parser(source);
+            const ast = intp.evaluateExpr();
 
-            console.log(result)
+            const result = visit(ast);
             resolve(`${result}`);
 
         } catch(err) {
